@@ -1,0 +1,60 @@
+# Virtual Environment
+venv/
+.venv/
+env/
+ENV/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Logs and temp files
+*.log
+logs/
+tmp/
+*.tmp
+
+# Local configs
+.env
+.env.*
+*.ini
+
+# Package building
+*.egg-info/
+dist/
+build/
+eggs/
+*.egg
+
+# Database and data files
+data/
+backup/
+osint_exports/
+*.db
+*.sqlite
+*.sqlite3
+.html
+.json
+
+# IDE configs
+.idea/
+.vscode/
+*.sublime-*
+*.code-workspace
+*.iml
+
+# Editor temp files
+*~
+*.swp
+*.swo
+
+# Cache files
+cache/
+.cache/
+.osint_cache/
+
+# pre-commit
+.mypy_cache/
+.pytest_cache/
