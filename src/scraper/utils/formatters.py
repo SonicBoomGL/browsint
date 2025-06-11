@@ -185,7 +185,7 @@ def format_domain_osint_report(data: Dict[str, Any], target_input: str, domain_a
 
     # Informazioni WHOIS
     whois_content = []
-    whois_content.append(f"{DATA_BLUE}  ┌─ Nome Dominio:{Style.RESET_ALL}      {TEXT_WHITE}{whois_data.get('domain_name', 'N/A').upper()}{Style.RESET_ALL}")
+    whois_content.append(f"{DATA_BLUE}  ┌─ Nome Dominio:{Style.RESET_ALL}      {TEXT_WHITE}{whois_data.get('domain_name', 'N/A')}{Style.RESET_ALL}")
     whois_content.append(f"{DATA_BLUE}  ├─ Registrar:{Style.RESET_ALL}         {TEXT_WHITE}{whois_data.get('registrar', 'N/A')}{Style.RESET_ALL}")
     whois_content.append(f"{DATA_BLUE}  ├─ Data Creazione:{Style.RESET_ALL}    {TEXT_WHITE}{whois_data.get('creation_date', 'N/A')}{Style.RESET_ALL}")
     whois_content.append(f"{DATA_BLUE}  ├─ Data Scadenza:{Style.RESET_ALL}     {TEXT_WHITE}{whois_data.get('expiration_date', 'N/A')}{Style.RESET_ALL}")
