@@ -9,6 +9,9 @@ import validators
 from datetime import datetime
 from tabulate import tabulate
 import logging
+from scraper.utils.formatters import (
+    generate_html_report, format_domain_osint_report, create_pdf_domain_report, text_report_to_html, formal_html_report_domain
+)
 
 if TYPE_CHECKING:
     from ..scraper_cli import ScraperCLI
@@ -26,7 +29,7 @@ def display_osint_menu() -> str:
     print(f"{Fore.GREEN}3.{Style.RESET_ALL} Ricerca username sui social media")
     print(f"{Fore.GREEN}4.{Style.RESET_ALL} Mostra profili OSINT salvati")
     print(f"{Fore.GREEN}5.{Style.RESET_ALL} Analizza un profilo esistente")
-    print(f"{Fore.GREEN}6.{Style.RESET_ALL} Esporta profilo OSINT in JSON\n")
+    print(f"{Fore.GREEN}6.{Style.RESET_ALL} Esporta profilo\n")
     print(f"{Fore.GREEN}0.{Style.RESET_ALL} Torna al menu principale")
 
     return prompt_for_input("\nScelta: ")
@@ -51,6 +54,14 @@ def handle_osint_choice(cli_instance: 'ScraperCLI', choice: str) -> None:
             print(f"{Fore.RED}✗ Scelta non valida")
             input(f"{Fore.CYAN}\nPremi INVIO per continuare...{Style.RESET_ALL}") 
 
+def _export_menu() -> str:
+    print("\nScegli il formato di esportazione:")
+    print("1. JSON")
+    print("2. HTML")
+    print("3. PDF")
+    print("4. Tutti")
+    print("0. Annulla")
+    return prompt_for_input("Scelta: ").strip()
 
 def profile_domain_cli(cli_instance: 'ScraperCLI'):
     '''Gestisce l'interazione CLI per profilare un dominio web utilizzando strumenti OSINT.'''
@@ -72,7 +83,7 @@ def profile_domain_cli(cli_instance: 'ScraperCLI'):
             cli_instance.osint_extractor._display_osint_profile(profile, domain)
 
             print(f"\n{Fore.CYAN}Azioni disponibili per '{domain}':{Style.RESET_ALL}")
-            print("1. Esporta profilo completo in JSON")
+            print("1. Esporta profilo completo")
             print("2. Torna al menu OSINT")
 
             choice = prompt_for_input("\nScelta: ").strip()
@@ -176,7 +187,7 @@ def profile_username_cli(cli_instance: 'ScraperCLI'):
         input(f"\n{Fore.CYAN}Premi INVIO per continuare...{Style.RESET_ALL}")
 
 def show_osint_profiles_cli(cli_instance: 'ScraperCLI'):
-    '''Mostra un sommario dei profili OSINT salvati nel database tramite CLI.'''
+    '''Mostra un sommario dei profili OSINT salvati nel database tramite CLI. Permette anche di visualizzare l'analisi di un profilo selezionato.'''
     print(f"{Fore.CYAN}Recupero sommario profili OSINT salvati...{Style.RESET_ALL}")
     profiles_summary = cli_instance.osint_extractor.get_all_osint_profiles_summary() # Recupera i profili OSINT dal database
 
@@ -209,6 +220,24 @@ def show_osint_profiles_cli(cli_instance: 'ScraperCLI'):
         print(tabulate(table_data, headers=headers, tablefmt="fancy_grid"))
     else:
         print(f"{Fore.YELLOW}Nessun dato da visualizzare.{Style.RESET_ALL}")
+        return
+
+    # Prompt to view a profile's analysis
+    id_input = prompt_for_input("\nInserisci l'ID del profilo da visualizzare (INVIO per tornare): ").strip()
+    if not id_input or id_input == '0':
+        return
+    try:
+        profile_id = int(id_input)
+    except ValueError:
+        print(f"{Fore.RED}✗ Valore errato, inserire un numero intero.{Style.RESET_ALL}")
+        return
+    profile = cli_instance.osint_extractor.get_osint_profile_by_id(profile_id)
+    if not profile:
+        print(f"{Fore.YELLOW}⚠ Profilo con ID {profile_id} non trovato.{Style.RESET_ALL}")
+        return
+    print(f"\n{Fore.CYAN}--- ANALISI PROFILO OSINT ID {profile_id} ---{Style.RESET_ALL}")
+    cli_instance.osint_extractor._display_osint_profile(profile, profile.get('entity', {}).get('name', str(profile_id)))
+    input(f"\n{Fore.CYAN}Premi INVIO per continuare...{Style.RESET_ALL}")
 
 def anlyze_existing_profile_cli(cli_instance: 'ScraperCLI'):
     '''Gestisce l'interazione CLI per rieseguire analisi su un profilo OSINT esistente.'''
@@ -220,10 +249,20 @@ def anlyze_existing_profile_cli(cli_instance: 'ScraperCLI'):
         print(f"{Fore.RED}✗ Valore errato, inserire un numero intero.{Style.RESET_ALL}")
         return
 
-    profile = cli_instance.osint_extractor.get_osint_profile_by_id(profile_id) # identiifica il profilo esistente tramite ID
+    profile = cli_instance.osint_extractor.get_osint_profile_by_id(profile_id)
     if not profile:
         print(f"{Fore.YELLOW}⚠ Profilo con ID {profile_id} non trovato.{Style.RESET_ALL}")
         return
+
+    entity = profile.get('entity', {})
+    contacts = profile.get('contacts', [])
+    entity_type = entity.get('type')
+    # Email: presente se almeno un contatto di tipo email
+    has_email = any(c.get('contact_type') == 'email' for c in contacts)
+    # Username: solo per person, è il name
+    has_username = entity_type == 'person' and entity.get('name')
+    # Dominio: solo per company, è il domain
+    has_domain = entity_type == 'company' and entity.get('domain')
 
     print(f"\n{Fore.CYAN}Vuoi rieseguire un check tra:{Style.RESET_ALL}")
     print(f"{Fore.GREEN}1.{Style.RESET_ALL} Email (solo se il profilo ha un'email associata)")
@@ -233,39 +272,36 @@ def anlyze_existing_profile_cli(cli_instance: 'ScraperCLI'):
     choice_input = prompt_for_input("Scelta: ").strip()
 
     if choice_input == '1':
-        email = profile.get('email')
-        if email:
+        if has_email:
+            email = next(c['value'] for c in contacts if c.get('contact_type') == 'email')
             print(f"{Fore.YELLOW}Rieseguendo scansione email per {email}...{Style.RESET_ALL}")
-            cli_instance.osint_extractor.profile_email(email, force_recheck=True) 
+            cli_instance.osint_extractor.profile_email(email, force_recheck=True)
             print(f"{Fore.GREEN}Check email completato. Visualizza il profilo aggiornato per vedere i cambiamenti.{Style.RESET_ALL}")
         else:
             print(f"{Fore.YELLOW}⚠ Il profilo non ha un'email associata per rieseguire il check.{Style.RESET_ALL}")
-    
     elif choice_input == '2':
-        username = profile.get('name')
-        if username:
+        if has_username:
+            username = entity.get('name')
             print(f"{Fore.YELLOW}Rieseguendo scansione social per {username}...{Style.RESET_ALL}")
             cli_instance.osint_extractor.profile_username(username, force_recheck=True)
             print(f"{Fore.GREEN}Check social completato. Visualizza il profilo aggiornato per vedere i cambiamenti.{Style.RESET_ALL}")
         else:
             print(f"{Fore.YELLOW}⚠ Il profilo non ha un nome/username associato per rieseguire il check social.{Style.RESET_ALL}")
-    
     elif choice_input == '3':
-        domain = profile.get('domain')
-        if domain:
+        if has_domain:
+            domain = entity.get('domain')
             print(f"{Fore.YELLOW}Rieseguendo scansione sottodomini per {domain}...{Style.RESET_ALL}")
             cli_instance.osint_extractor.profile_domain(domain, force_recheck=True)
             print(f"{Fore.GREEN}Check sottodomini completato. Visualizza il profilo aggiornato per vedere i cambiamenti.{Style.RESET_ALL}")
         else:
             print(f"{Fore.YELLOW}⚠ Il profilo non ha un dominio associato per rieseguire il check sottodomini.{Style.RESET_ALL}")
-    
     elif choice_input == '0':
         print(f"{Fore.BLUE}Operazione annullata.{Style.RESET_ALL}")
     else:
         print(f"{Fore.RED}✗ Scelta non valida.{Style.RESET_ALL}")
 
 def export_osint_profile_cli(cli_instance: 'ScraperCLI', profile_data: dict = None) -> None:
-    '''Esporta i dati di un profilo OSINT in formato JSON su file.'''
+    '''Esporta i dati di un profilo OSINT in formato scelto (JSON, HTML, PDF, Tutti).'''
     try:
         if profile_data is None:
             # Se non viene fornito un profilo, chiedi l'ID
@@ -282,13 +318,45 @@ def export_osint_profile_cli(cli_instance: 'ScraperCLI', profile_data: dict = No
 
         target_id = profile_data.get("entity", {}).get("name", "unknown")
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"osint_profile_{target_id}_{timestamp}.json"
-        filepath = cli_instance.dirs["osint_exports"] / filename
+        osint_dir = cli_instance.dirs["osint_exports"]
+        pdf_dir = cli_instance.dirs["pdf_reports"]
 
-        with open(filepath, 'w', encoding='utf-8') as f:
-            json.dump(profile_data, f, indent=4, ensure_ascii=False, default=json_serial) # uso json_serial per adattare all'esportazione json
+        export_choice = _export_menu()
+        if export_choice == "0":
+            print("Esportazione annullata.")
+            return
 
-        print(f"\n{Fore.GREEN}✓ Profilo esportato con successo in: {filepath}{Style.RESET_ALL}")
+        exported = False
+        if export_choice in {"1", "4"}:
+            json_path = osint_dir / f"osint_profile_{target_id}_{timestamp}.json"
+            with open(json_path, 'w', encoding='utf-8') as f:
+                json.dump(profile_data, f, indent=4, ensure_ascii=False, default=json_serial)
+            print(f"\n{Fore.GREEN}✓ Profilo esportato in JSON: {json_path}{Style.RESET_ALL}")
+            exported = True
+        if export_choice in {"2", "4"}:
+            html_path = osint_dir / f"osint_profile_{target_id}_{timestamp}.html"
+            profiles = profile_data.get('profiles', {})
+            data = profiles.get('domain', {}).get('raw', {})
+            domain_analyzed = profile_data.get('entity', {}).get('name', target_id)
+            target_input = profile_data.get('target_input', domain_analyzed)
+            shodan_skipped = 'shodan' not in data
+            html_report = formal_html_report_domain(data, target_input, domain_analyzed, shodan_skipped)
+            with open(html_path, 'w', encoding='utf-8') as f:
+                f.write(html_report)
+            print(f"{Fore.GREEN}✓ Profilo esportato in HTML: {html_path}{Style.RESET_ALL}")
+            exported = True
+        if export_choice in {"3", "4"}:
+            pdf_path = pdf_dir / f"osint_profile_{target_id}_{timestamp}.pdf"
+            profiles = profile_data.get('profiles', {})
+            data = profiles.get('domain', {}).get('raw', {})
+            domain_analyzed = profile_data.get('entity', {}).get('name', target_id)
+            target_input = profile_data.get('target_input', domain_analyzed)
+            shodan_skipped = 'shodan' not in data
+            create_pdf_domain_report(data, target_input, domain_analyzed, shodan_skipped, str(pdf_path))
+            print(f"{Fore.GREEN}✓ Profilo esportato in PDF: {pdf_path}{Style.RESET_ALL}")
+            exported = True
+        if not exported:
+            print(f"{Fore.YELLOW}Nessun formato selezionato per l'esportazione.{Style.RESET_ALL}")
 
     except Exception as e:
         logger.error(f"Error exporting profile: {e}", exc_info=True)

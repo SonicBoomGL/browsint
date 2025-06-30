@@ -89,7 +89,8 @@ class ScraperCLI:
             "reports": self.data_dir / "downloaded_reports",
             "osint_exports": self.data_dir / "osint_exports",
             "downloaded_tree": self.data_dir / "downloaded_tree",
-            "osint_usernames": self.data_dir / "osint_usernames" 
+            "osint_usernames": self.data_dir / "osint_usernames",
+            "pdf_reports": self.data_dir / "pdf_reports"
         }
 
         for dir_path in self.dirs.values():

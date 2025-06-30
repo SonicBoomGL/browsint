@@ -12,7 +12,7 @@ from urllib.parse import urlparse
 import logging
 from pathlib import Path
 from tabulate import tabulate
-from scraper.utils.formatters import format_page_analysis_report
+from scraper.utils.formatters import format_page_analysis_report, generate_html_report, create_pdf_page_report, text_report_to_html, formal_html_report_page
 from scraper.utils.extractors import extract_emails, extract_phone_numbers
 from scraper.utils.web_analysis import detect_technologies
 
@@ -76,19 +76,6 @@ def analyze_page_structure(cli_instance: 'ScraperCLI') -> None:
 
         parsed_data = cli_instance.web_parser.parse(content, url) # parsing del contenuto HTML
 
-        domain = urlparse(url).netloc or "unknown_site" # estraggo il dominio dalla URL
-        timestamp = time.strftime("%Y%m%d_%H%M%S") 
-        analysis_output_dir = cli_instance.dirs["analysis"] / f"{domain.replace('.', '_')}_{timestamp}" 
-        analysis_output_dir.mkdir(parents=True, exist_ok=True)
-
-        raw_html_path = analysis_output_dir / "original.html"
-        with open(raw_html_path, "w", encoding="utf-8") as f_html:
-            f_html.write(content)
-
-        parsed_json_path = analysis_output_dir / "parsed_structure.json"
-        with open(parsed_json_path, "w", encoding="utf-8") as f_json:
-            json.dump(parsed_data, f_json, indent=2, ensure_ascii=False, default=json_serial)
-
         # Prepare OSINT data
         osint_data = {}
         if hasattr(cli_instance, 'osint_extractor') and cli_instance.osint_extractor: # hasattr per verificare se l'OSINT Extractor è disponibile
@@ -108,18 +95,14 @@ def analyze_page_structure(cli_instance: 'ScraperCLI') -> None:
                 logger.error(f"Errore durante estrazione OSINT base per {url}: {e_osint_page}", exc_info=True)
                 print(f"{Fore.RED}✗ Errore durante estrazione OSINT base per pagina: {e_osint_page}{Style.RESET_ALL}")
 
-        # Prepare save paths
-        save_paths = {
-            "original_html": raw_html_path,
-            "parsed_json": parsed_json_path
-        }
-
-        # Display formatted report
+        # Remove the save_raw prompt and logic from here
+        save_paths = {}
+        # Display formatted report (with empty save_paths)
         print(format_page_analysis_report(url, parsed_data, osint_data, save_paths))
 
-        should_export = prompt_for_input("\nVuoi esportare i risultati in JSON? (s/N): ").lower() == 's'
-        if should_export:
-            _export_analysis_results(cli_instance, url, parsed_data, osint_data)
+        export_choice = _export_menu()
+        if export_choice != "0":
+            _export_analysis_results(cli_instance, url, parsed_data, osint_data, export_choice)
 
     except Exception as e:
         logger.error(f"Error during page structure analysis for {url}: {e}", exc_info=True)
@@ -282,23 +265,24 @@ def _display_base_crawl_stats(stats: dict) -> None:
     print(f"\nPercorso di salvataggio:")
     print(f"  • Contenuto: {stats.get('download_path', 'N/A')}")
 
+def _export_menu() -> str:
+    print("\nScegli il formato di esportazione:")
+    print("1. JSON")
+    print("2. HTML")
+    print("3. PDF")
+    print("4. Tutti")
+    print("0. Annulla")
+    return prompt_for_input("Scelta: ").strip()
 
-def _export_analysis_results(cli_instance: 'ScraperCLI', url: str, parsed_data: dict, osint_data: dict) -> None:
+def _export_analysis_results(cli_instance: 'ScraperCLI', url: str, parsed_data: dict, osint_data: dict, export_choice: str, save_paths: dict = None) -> None:
     '''
-    Esporta i risultati dell'analisi web in formato JSON.
-    
-    Args:
-        cli_instance: Istanza del CLI con accesso alle directory
-        url: URL analizzato
-        parsed_data: Dati estratti dal parsing della pagina
-        osint_data: Dati OSINT estratti
+    Esporta i risultati dell'analisi web in formato scelto (JSON, HTML, PDF, Tutti).
     '''
     try:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         domain = urlparse(url).netloc
-        filename = f"analysis_{domain}_{timestamp}.json"
-        filepath = cli_instance.dirs["analysis"] / filename
-
+        analysis_dir = cli_instance.dirs["analysis"]
+        pdf_dir = cli_instance.dirs["pdf_reports"]
         export_data = {
             "url": url,
             "timestamp": timestamp,
@@ -309,13 +293,48 @@ def _export_analysis_results(cli_instance: 'ScraperCLI', url: str, parsed_data: 
                 "generated_by": "Browsint Web Analyzer"
             }
         }
-
-        with open(filepath, 'w', encoding='utf-8') as f:
-            json.dump(export_data, f, indent=4, ensure_ascii=False, default=json_serial)
-
-        print(f"\n{Fore.GREEN}✓ Risultati esportati in: {filepath}{Style.RESET_ALL}")
-        logger.info(f"Analysis results exported to {filepath}")
-
+        exported = False
+        save_paths = save_paths or {}
+        # Only ask to save raw HTML/JSON if exporting JSON or HTML (or all)
+        if export_choice in {"1", "2", "4"}:
+            save_raw = prompt_for_input("Vuoi salvare anche HTML originale e struttura JSON? (s/N): ").lower() == 's'
+            if save_raw:
+                analysis_output_dir = analysis_dir / f"{domain.replace('.', '_')}_{timestamp}"
+                analysis_output_dir.mkdir(parents=True, exist_ok=True)
+                # Save original HTML
+                raw_html_path = analysis_output_dir / "original.html"
+                response = cli_instance.web_fetcher.fetch_full_response(url)
+                content = response.content.decode(response.encoding if response.encoding else 'utf-8', errors='replace')
+                with open(raw_html_path, "w", encoding="utf-8") as f_html:
+                    f_html.write(content)
+                save_paths["original_html"] = raw_html_path
+                # Save parsed JSON
+                parsed_json_path = analysis_output_dir / "parsed_structure.json"
+                with open(parsed_json_path, "w", encoding="utf-8") as f_json:
+                    json.dump(parsed_data, f_json, indent=2, ensure_ascii=False, default=json_serial)
+                save_paths["parsed_json"] = parsed_json_path
+        if export_choice in {"1", "4"}:
+            json_path = analysis_dir / f"analysis_{domain}_{timestamp}.json"
+            with open(json_path, 'w', encoding='utf-8') as f:
+                json.dump(export_data, f, indent=4, ensure_ascii=False, default=json_serial)
+            print(f"\n{Fore.GREEN}✓ Esportato JSON: {json_path}{Style.RESET_ALL}")
+            exported = True
+        if export_choice in {"2", "4"}:
+            html_path = analysis_dir / f"analysis_{domain}_{timestamp}.html"
+            html_report = formal_html_report_page(url, parsed_data, osint_data, save_paths)
+            with open(html_path, 'w', encoding='utf-8') as f:
+                f.write(html_report)
+            print(f"{Fore.GREEN}✓ Esportato HTML: {html_path}{Style.RESET_ALL}")
+            exported = True
+        if export_choice in {"3", "4"}:
+            pdf_path = pdf_dir / f"analysis_{domain}_{timestamp}.pdf"
+            create_pdf_page_report(url, parsed_data, osint_data, save_paths, str(pdf_path))
+            print(f"{Fore.GREEN}✓ Esportato PDF: {pdf_path}{Style.RESET_ALL}")
+            exported = True
+        if not exported:
+            print(f"{Fore.YELLOW}Nessun formato selezionato per l'esportazione.{Style.RESET_ALL}")
+        else:
+            logger.info(f"Analysis results exported for {url} [{export_choice}]")
     except Exception as e:
         logger.error(f"Error exporting analysis results: {e}", exc_info=True)
         print(f"{Fore.RED}✗ Errore durante l'esportazione: {e}{Style.RESET_ALL}")

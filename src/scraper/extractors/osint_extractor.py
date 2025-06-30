@@ -595,7 +595,7 @@ class OSINTExtractor:
 
         return {"emails": list(contacts["emails"]), "phone_numbers": list(contacts["phone_numbers"])}
     
-    def profile_domain(self, domain: str) -> dict[str, Any]:
+    def profile_domain(self, domain: str, force_recheck: bool = False) -> dict[str, Any]:
         '''
         Avvia il processo di profilazione OSINT per un dominio web.
         Valida l'input e delega al metodo entity.

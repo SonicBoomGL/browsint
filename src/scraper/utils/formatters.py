@@ -6,6 +6,7 @@ from colorama import Fore, Style
 from urllib.parse import urlparse
 from pathlib import Path
 import re
+#from fpdf import FPDF
 
 # Palette di colori blu professionale
 HEADER_BLUE = Fore.BLUE + Style.BRIGHT
@@ -16,13 +17,11 @@ WARNING_BLUE = Fore.LIGHTCYAN_EX
 TEXT_WHITE = Fore.WHITE + Style.BRIGHT
 SEPARATOR_BLUE = Fore.CYAN + Style.DIM
 
-def generate_html_report(self, profile: dict) -> str:
-   
+def generate_html_report(profile: dict) -> str:
     '''
     Funzione: _generate_html_report
     Genera un report in formato HTML da un profilo OSINT (funzionalità placeholder).
     Parametri formali:
-        self -> Riferimento all'istanza della classe
         dict profile -> Dizionario contenente i dati del profilo OSINT
     Valore di ritorno:
         str -> Una stringa contenente il codice HTML del report
@@ -67,6 +66,142 @@ def generate_html_report(self, profile: dict) -> str:
 """
     return html
 
+# Aggiungere queste importazioni all'inizio del file formatters.py
+try:
+    from reportlab.lib.pagesizes import letter, A4
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import inch
+    from reportlab.lib.colors import HexColor, black, white
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
+    from reportlab.platypus.frames import Frame
+    from reportlab.platypus.doctemplate import BaseDocTemplate, PageTemplate
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY
+    from io import BytesIO
+    import html
+    import re
+    REPORTLAB_AVAILABLE = True
+except ImportError:
+    REPORTLAB_AVAILABLE = False
+    print("Warning: ReportLab not available. PDF generation will be disabled.")
+    print("Install it with: pip install reportlab")
+
+try:
+    import pdfkit
+    PDFKIT_AVAILABLE = True
+except ImportError:
+    PDFKIT_AVAILABLE = False
+    print("Warning: pdfkit not available. HTML-to-PDF conversion will be disabled.")
+    print("Install it with: pip install pdfkit && sudo apt install wkhtmltopdf")
+
+def text_report_to_html(text: str) -> str:
+    """
+    Converts a colored/text report to a simple HTML preserving sections and line breaks, stripping ANSI codes.
+    """
+    # Improved regex to remove all ANSI escape codes
+    ansi_escape = re.compile(r'(\x1B\[[0-9;]*[A-Za-z])|([\u001b\u009b][[\]()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><~])')
+    lines = text.splitlines()
+    html_lines = []
+    for line in lines:
+        clean = ansi_escape.sub('', line)
+        html_lines.append(html.escape(clean))
+    html_content = "<pre style='font-family:monospace; background:#f4f7f6; color:#222; padding:1em;'>\n" + "\n".join(html_lines) + "\n</pre>"
+    return f"""<!DOCTYPE html><html><head><meta charset='utf-8'><title>OSINT Report</title></head><body>{html_content}</body></html>"""
+
+
+def create_pdf_from_html(html_content: str, output_path: str, fallback_text: str = None) -> None:
+    """
+    Create a PDF from HTML using pdfkit if available, otherwise fallback to ReportLab text PDF.
+    """
+    if not PDFKIT_AVAILABLE:
+        if fallback_text:
+            print("[WARN] pdfkit not available, falling back to text-based PDF.")
+            _create_pdf_from_text(fallback_text, output_path)
+            return
+        raise ImportError("pdfkit is required for HTML-to-PDF conversion. Install it with: pip install pdfkit && sudo apt install wkhtmltopdf")
+    try:
+        pdfkit.from_string(html_content, output_path)
+    except (OSError, IOError) as e:
+        if fallback_text:
+            print(f"[WARN] pdfkit/wkhtmltopdf error: {e}. Falling back to text-based PDF.")
+            _create_pdf_from_text(fallback_text, output_path)
+        else:
+            raise
+
+
+def create_pdf_domain_report(data: dict, target_input: str, domain_analyzed: str, shodan_skipped: bool, output_path: str, use_html: bool = True) -> None:
+    """
+    Create a PDF report for domain analysis. If use_html is True and pdfkit is available, use HTML-to-PDF, otherwise fallback to reportlab.
+    """
+    try:
+        html_report = formal_html_report_domain(data, target_input, domain_analyzed, shodan_skipped)
+        if use_html and PDFKIT_AVAILABLE:
+            create_pdf_from_html(html_report, output_path, fallback_text=None)
+        else:
+            raise Exception("No pdfkit, fallback to reportlab")
+    except Exception:
+        formal_pdf_report_domain(data, target_input, domain_analyzed, shodan_skipped, output_path)
+
+
+def create_pdf_page_report(url: str, parsed_data: dict, osint_data: dict, save_paths: dict, output_path: str, use_html: bool = True) -> None:
+    """
+    Create a PDF report for page analysis. If use_html is True and pdfkit is available, use HTML-to-PDF, otherwise fallback to reportlab.
+    """
+    # Use the new formal report for both HTML and PDF
+    try:
+        html_report = formal_html_report_page(url, parsed_data, osint_data, save_paths)
+        if use_html and PDFKIT_AVAILABLE:
+            create_pdf_from_html(html_report, output_path, fallback_text=None)
+        else:
+            raise Exception("No pdfkit, fallback to reportlab")
+    except Exception:
+        # Fallback to formal PDF
+        formal_pdf_report_page(url, parsed_data, osint_data, save_paths, output_path)
+
+
+def create_pdf_combined_report(domain_data: dict, page_data: dict, target_input: str, domain_analyzed: str, url: str, shodan_skipped: bool, output_path: str, use_html: bool = True) -> None:
+    """
+    Create a combined PDF report for domain and page analysis.
+    """
+    domain_report = format_domain_osint_report(domain_data, target_input, domain_analyzed, shodan_skipped)
+    page_report = format_page_analysis_report(
+        url,
+        page_data.get('parsed_data', {}),
+        page_data.get('osint_data', {}),
+        page_data.get('save_paths', {})
+    )
+    combined_text = domain_report + "\n\n" + page_report
+    html_report = text_report_to_html(combined_text)
+    if use_html and PDFKIT_AVAILABLE:
+        create_pdf_from_html(html_report, output_path, fallback_text=combined_text)
+    elif REPORTLAB_AVAILABLE:
+        _create_pdf_from_text(combined_text, output_path, title="Complete OSINT Analysis Report")
+    else:
+        raise ImportError("No PDF backend available. Install pdfkit or reportlab.")
+
+
+def _create_pdf_from_text(text_report: str, output_path: str, title: str = "OSINT Report") -> None:
+    """
+    Helper to create a simple PDF from plain text using reportlab.
+    """
+    if not REPORTLAB_AVAILABLE:
+        raise ImportError("ReportLab is required for PDF generation. Install it with: pip install reportlab")
+    from reportlab.lib.pagesizes import A4
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.units import inch
+    c = canvas.Canvas(output_path, pagesize=A4)
+    width, height = A4
+    c.setFont("Helvetica-Bold", 16)
+    c.drawString(72, height - 72, title)
+    c.setFont("Helvetica", 10)
+    y = height - 100
+    for line in text_report.splitlines():
+        if y < 72:
+            c.showPage()
+            y = height - 72
+            c.setFont("Helvetica", 10)
+        c.drawString(72, y, line)
+        y -= 14
+    c.save()
 
 def create_section_box(title: str, content_lines: list, min_width: int = 60) -> list:
     """Crea una sezione con box dinamico basato sul contenuto"""
@@ -447,3 +582,317 @@ def format_page_analysis_report(url: str, parsed_data: Dict[str, Any], osint_dat
     # Footer
     report_parts.append(f"{HEADER_BLUE}{'╚' + '═' * (HEADER_WIDTH-2) + '╝'}{Style.RESET_ALL}")
     return "\n".join(report_parts)
+
+def formal_html_report_page(url, parsed_data, osint_data, save_paths):
+    """
+    Generate a clean, styled HTML report for a page analysis with sections and tables.
+    """
+    title = parsed_data.get("title", "N/A")
+    description = parsed_data.get("description", "N/A")
+    content_length = parsed_data.get("content_length", "N/A")
+    lang_attr = parsed_data.get("lang", "N/A")
+    canonical_url = parsed_data.get("canonical_url", "N/A")
+    internal_links = parsed_data.get("internal_links_count", 0)
+    external_links = parsed_data.get("external_links_count", 0)
+    image_count = parsed_data.get("image_count", 0)
+    css_count = parsed_data.get("css_count", 0)
+    js_count = parsed_data.get("js_count", 0)
+    emails = osint_data.get("emails", [])
+    phones = osint_data.get("phone_numbers", [])
+    domain = urlparse(url).netloc
+    technologies = osint_data.get("page_technologies", {})
+    # save_html = save_paths.get("original_html", "N/A")
+    # save_json = save_paths.get("parsed_json", "N/A")
+
+    html = f"""
+    <!DOCTYPE html>
+    <html lang='it'>
+    <head>
+        <meta charset='utf-8'>
+        <title>OSINT Page Analysis Report</title>
+        <style>
+            body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7f6; color: #222; margin: 0; }}
+            .container {{ max-width: 900px; margin: 30px auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); padding: 32px; }}
+            h1, h2 {{ color: #005f73; }}
+            table {{ border-collapse: collapse; width: 100%; margin-bottom: 24px; }}
+            th, td {{ border: 1px solid #dee2e6; padding: 8px 12px; text-align: left; }}
+            th {{ background: #e9ecef; color: #005f73; }}
+            .section {{ margin-bottom: 32px; }}
+            .label {{ font-weight: bold; color: #0077b6; }}
+            .footer {{ margin-top: 40px; text-align: center; color: #888; font-size: 0.95em; }}
+        </style>
+    </head>
+    <body>
+    <div class='container'>
+        <h1>OSINT Page Analysis Report</h1>
+        <div class='section'>
+            <h2>Target</h2>
+            <table>
+                <tr><th>URL Analizzato</th><td>{url}</td></tr>
+                <tr><th>Dominio</th><td>{domain}</td></tr>
+                <tr><th>Data Analisi</th><td>{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</td></tr>
+            </table>
+        </div>
+        <div class='section'>
+            <h2>Informazioni Generali</h2>
+            <table>
+                <tr><th>Titolo Pagina</th><td>{title}</td></tr>
+                <tr><th>Meta Descrizione</th><td>{description}</td></tr>
+                <tr><th>URL Canonical</th><td>{canonical_url}</td></tr>
+                <tr><th>Lingua (HTML)</th><td>{lang_attr}</td></tr>
+                <tr><th>Dimensione HTML</th><td>{content_length} bytes</td></tr>
+            </table>
+        </div>
+        <div class='section'>
+            <h2>Statistiche Link & Media</h2>
+            <table>
+                <tr><th>Link Interni</th><td>{internal_links}</td></tr>
+                <tr><th>Link Esterni</th><td>{external_links}</td></tr>
+                <tr><th>Immagini</th><td>{image_count}</td></tr>
+                <tr><th>CSS</th><td>{css_count}</td></tr>
+                <tr><th>JS</th><td>{js_count}</td></tr>
+            </table>
+        </div>
+        <div class='section'>
+            <h2>Dati di Contatto Estratti</h2>
+            <table>
+                <tr><th>Emails</th><td>{', '.join(emails) if emails else 'Nessuna'}</td></tr>
+                <tr><th>Numeri di Telefono</th><td>{', '.join(phones) if phones else 'Nessuno'}</td></tr>
+            </table>
+        </div>
+        <div class='section'>
+            <h2>Tecnologie & Configurazione Web</h2>
+            <table>
+                <tr><th>CMS / Framework</th><td>{technologies.get('framework_cms', 'Sconosciuto')}</td></tr>
+                <tr><th>Web Server</th><td>{technologies.get('web_server', 'Sconosciuto')}</td></tr>
+                <tr><th>Librerie JS</th><td>{', '.join(technologies.get('js_libraries', [])) if technologies.get('js_libraries') else 'Nessuna'}</td></tr>
+                <tr><th>Analytics</th><td>{technologies.get('analytics', 'Nessuno')}</td></tr>
+            </table>
+        </div>
+        <div class='footer'>
+            Generato da Browsint OSINT Tool
+        </div>
+    </div>
+    </body>
+    </html>
+    """
+    return html
+
+def formal_pdf_report_page(url, parsed_data, osint_data, save_paths, output_path):
+    """
+    Generate a clean, styled PDF report for a page analysis with sections and tables.
+    """
+    if not REPORTLAB_AVAILABLE:
+        raise ImportError("ReportLab is required for PDF generation. Install it with: pip install reportlab")
+    from reportlab.lib.pagesizes import A4
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.lib import colors
+    doc = SimpleDocTemplate(output_path, pagesize=A4, rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40)
+    styles = getSampleStyleSheet()
+    styleH = styles['Heading1']
+    styleH2 = styles['Heading2']
+    styleN = styles['Normal']
+    def para(text):
+        return Paragraph(str(text), styleN)
+    story = []
+    story.append(Paragraph("OSINT Page Analysis Report", styleH))
+    story.append(Spacer(1, 16))
+    # Target
+    story.append(Paragraph("Target", styleH2))
+    data = [
+        [para("URL Analizzato"), para(url)],
+        [para("Dominio"), para(urlparse(url).netloc)],
+        [para("Data Analisi"), para(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))],
+    ]
+    story.append(Table(data, hAlign='LEFT', style=[('BACKGROUND', (0,0), (-1,0), colors.lightgrey)]))
+    story.append(Spacer(1, 12))
+    # General Info
+    story.append(Paragraph("Informazioni Generali", styleH2))
+    data = [
+        [para("Titolo Pagina"), para(parsed_data.get("title", "N/A"))],
+        [para("Meta Descrizione"), para(parsed_data.get("description", "N/A"))],
+        [para("URL Canonical"), para(parsed_data.get("canonical_url", "N/A"))],
+        [para("Lingua (HTML)"), para(parsed_data.get("lang", "N/A"))],
+        [para("Dimensione HTML"), para(f"{parsed_data.get('content_length', 'N/A')} bytes")],
+    ]
+    story.append(Table(data, hAlign='LEFT'))
+    story.append(Spacer(1, 12))
+    # Link & Media
+    story.append(Paragraph("Statistiche Link & Media", styleH2))
+    data = [
+        [para("Link Interni"), para(parsed_data.get("internal_links_count", 0))],
+        [para("Link Esterni"), para(parsed_data.get("external_links_count", 0))],
+        [para("Immagini"), para(parsed_data.get("image_count", 0))],
+        [para("CSS"), para(parsed_data.get("css_count", 0))],
+        [para("JS"), para(parsed_data.get("js_count", 0))],
+    ]
+    story.append(Table(data, hAlign='LEFT'))
+    story.append(Spacer(1, 12))
+    # Contacts
+    story.append(Paragraph("Dati di Contatto Estratti", styleH2))
+    emails = osint_data.get("emails", [])
+    phones = osint_data.get("phone_numbers", [])
+    data = [
+        [para("Emails"), para(", ".join(emails) if emails else "Nessuna")],
+        [para("Numeri di Telefono"), para(", ".join(phones) if phones else "Nessuno")],
+    ]
+    story.append(Table(data, hAlign='LEFT'))
+    story.append(Spacer(1, 12))
+    # Technologies
+    story.append(Paragraph("Tecnologie & Configurazione Web", styleH2))
+    technologies = osint_data.get("page_technologies", {})
+    data = [
+        [para("CMS / Framework"), para(technologies.get("framework_cms", "Sconosciuto"))],
+        [para("Web Server"), para(technologies.get("web_server", "Sconosciuto"))],
+        [para("Librerie JS"), para(", ".join(technologies.get("js_libraries", [])) if technologies.get("js_libraries") else "Nessuna")],
+        [para("Analytics"), para(technologies.get("analytics", "Nessuno"))],
+    ]
+    story.append(Table(data, hAlign='LEFT'))
+    story.append(Spacer(1, 12))
+    story.append(Paragraph("Generato da Browsint OSINT Tool", styleN))
+    doc.build(story)
+
+def formal_html_report_domain(data, target_input, domain_analyzed, shodan_skipped):
+    whois = data.get("whois", {})
+    dns = data.get("dns", {})
+    shodan = data.get("shodan", {})
+    emails = whois.get("emails", [])
+    name_servers = dns.get("NS", [])
+    a_records = dns.get("A", [])
+    mx_records = dns.get("MX", [])
+    domain = domain_analyzed
+    html = f"""
+    <!DOCTYPE html>
+    <html lang='it'>
+    <head>
+        <meta charset='utf-8'>
+        <title>OSINT Domain Profile Report</title>
+        <style>
+            body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7f6; color: #222; margin: 0; }}
+            .container {{ max-width: 900px; margin: 30px auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); padding: 32px; }}
+            h1, h2 {{ color: #005f73; }}
+            table {{ border-collapse: collapse; width: 100%; margin-bottom: 24px; }}
+            th, td {{ border: 1px solid #dee2e6; padding: 8px 12px; text-align: left; }}
+            th {{ background: #e9ecef; color: #005f73; }}
+            .section {{ margin-bottom: 32px; }}
+            .label {{ font-weight: bold; color: #0077b6; }}
+            .footer {{ margin-top: 40px; text-align: center; color: #888; font-size: 0.95em; }}
+        </style>
+    </head>
+    <body>
+    <div class='container'>
+        <h1>OSINT Domain Profile Report</h1>
+        <div class='section'>
+            <h2>Target</h2>
+            <table>
+                <tr><th>Input Originale</th><td>{target_input}</td></tr>
+                <tr><th>Dominio Analizzato</th><td>{domain}</td></tr>
+                <tr><th>Data Analisi</th><td>{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</td></tr>
+            </table>
+        </div>
+        <div class='section'>
+            <h2>WHOIS</h2>
+            <table>
+                <tr><th>Nome Dominio</th><td>{whois.get('domain_name', 'N/A')}</td></tr>
+                <tr><th>Registrar</th><td>{whois.get('registrar', 'N/A')}</td></tr>
+                <tr><th>Data Creazione</th><td>{whois.get('creation_date', 'N/A')}</td></tr>
+                <tr><th>Data Scadenza</th><td>{whois.get('expiration_date', 'N/A')}</td></tr>
+                <tr><th>Ultimo Aggiornamento</th><td>{whois.get('last_updated', 'N/A')}</td></tr>
+                <tr><th>Organization</th><td>{whois.get('organization', 'N/A')}</td></tr>
+                <tr><th>Emails</th><td>{', '.join(emails) if emails else 'Nessuna'}</td></tr>
+            </table>
+        </div>
+        <div class='section'>
+            <h2>DNS</h2>
+            <table>
+                <tr><th>Name Servers</th><td>{', '.join(name_servers) if name_servers else 'N/A'}</td></tr>
+                <tr><th>A Records</th><td>{', '.join(a_records) if a_records else 'N/A'}</td></tr>
+                <tr><th>MX Records</th><td>{', '.join(mx_records) if mx_records else 'N/A'}</td></tr>
+            </table>
+        </div>
+        <div class='section'>
+            <h2>Shodan</h2>
+            <table>
+                <tr><th>Scansione Saltata?</th><td>{'Sì' if shodan_skipped else 'No'}</td></tr>
+                <tr><th>IP</th><td>{shodan.get('ip_str', 'N/A')}</td></tr>
+                <tr><th>Organizzazione</th><td>{shodan.get('org', 'N/A')}</td></tr>
+                <tr><th>ISP</th><td>{shodan.get('isp', 'N/A')}</td></tr>
+                <tr><th>Porte Aperte</th><td>{', '.join(str(p.get('port')) for p in shodan.get('ports_info', [])) if shodan.get('ports_info') else 'N/A'}</td></tr>
+            </table>
+        </div>
+        <div class='footer'>
+            Generato da Browsint OSINT Tool
+        </div>
+    </div>
+    </body>
+    </html>
+    """
+    return html
+
+def formal_pdf_report_domain(data, target_input, domain_analyzed, shodan_skipped, output_path):
+    if not REPORTLAB_AVAILABLE:
+        raise ImportError("ReportLab is required for PDF generation. Install it with: pip install reportlab")
+    from reportlab.lib.pagesizes import A4
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.lib import colors
+    whois = data.get("whois", {})
+    dns = data.get("dns", {})
+    shodan = data.get("shodan", {})
+    emails = whois.get("emails", [])
+    name_servers = dns.get("NS", [])
+    a_records = dns.get("A", [])
+    mx_records = dns.get("MX", [])
+    doc = SimpleDocTemplate(output_path, pagesize=A4, rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40)
+    styles = getSampleStyleSheet()
+    story = []
+    styleH = styles['Heading1']
+    styleH2 = styles['Heading2']
+    styleN = styles['Normal']
+    story.append(Paragraph("OSINT Domain Profile Report", styleH))
+    story.append(Spacer(1, 16))
+    # Target
+    story.append(Paragraph("Target", styleH2))
+    data_target = [
+        ["Input Originale", target_input],
+        ["Dominio Analizzato", domain_analyzed],
+        ["Data Analisi", datetime.now().strftime('%Y-%m-%d %H:%M:%S')],
+    ]
+    story.append(Table(data_target, hAlign='LEFT', style=[('BACKGROUND', (0,0), (-1,0), colors.lightgrey)]))
+    story.append(Spacer(1, 12))
+    # WHOIS
+    story.append(Paragraph("WHOIS", styleH2))
+    data_whois = [
+        ["Nome Dominio", whois.get("domain_name", "N/A")],
+        ["Registrar", whois.get("registrar", "N/A")],
+        ["Data Creazione", whois.get("creation_date", "N/A")],
+        ["Data Scadenza", whois.get("expiration_date", "N/A")],
+        ["Ultimo Aggiornamento", whois.get("last_updated", "N/A")],
+        ["Organization", whois.get("organization", "N/A")],
+        ["Emails", ", ".join(emails) if emails else "Nessuna"],
+    ]
+    story.append(Table(data_whois, hAlign='LEFT'))
+    story.append(Spacer(1, 12))
+    # DNS
+    story.append(Paragraph("DNS", styleH2))
+    data_dns = [
+        ["Name Servers", ", ".join(name_servers) if name_servers else "N/A"],
+        ["A Records", ", ".join(a_records) if a_records else "N/A"],
+        ["MX Records", ", ".join(mx_records) if mx_records else "N/A"],
+    ]
+    story.append(Table(data_dns, hAlign='LEFT'))
+    story.append(Spacer(1, 12))
+    # Shodan
+    story.append(Paragraph("Shodan", styleH2))
+    data_shodan = [
+        ["Scansione Saltata?", "Sì" if shodan_skipped else "No"],
+        ["IP", shodan.get("ip_str", "N/A")],
+        ["Organizzazione", shodan.get("org", "N/A")],
+        ["ISP", shodan.get("isp", "N/A")],
+        ["Porte Aperte", ", ".join(str(p.get("port")) for p in shodan.get("ports_info", [])) if shodan.get("ports_info") else "N/A"],
+    ]
+    story.append(Table(data_shodan, hAlign='LEFT'))
+    story.append(Spacer(1, 16))
+    story.append(Paragraph("Generato da Browsint OSINT Tool", styleN))
+    doc.build(story)
