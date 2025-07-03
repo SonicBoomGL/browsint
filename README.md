@@ -10,10 +10,10 @@ Browsint è un toolkit OSINT (Open Source Intelligence) in Python per la raccolt
 
 ## 🔑 Funzionalità Principali
 
-**1. Download & Crawl Siti Web**: Download HTML + struttura da link e file. Download ricorsivo con crwaling.
-**2. Scraping OSINT Web**: Estrazioni dati presenti/nascosti nella pagina (anche in modo ricorsivo tramite crwaling)
-**3. Investigazione Manuale**: Analisi dominio (Sodam, whois, dns,..), profilazione email / username...
-**4. Opzioni di sistema**: Gestione DB, backup database, Gestione API keys 
+- **Download & Crawl Siti Web**: Download HTML + struttura da link e file. Download ricorsivo con crwaling.
+- **Scraping OSINT Web**: Estrazioni dati presenti/nascosti nella pagina (anche in modo ricorsivo tramite crwaling)
+- **Investigazione Manuale**: Analisi dominio (Sodam, whois, dns,..), profilazione email / username...
+- **Opzioni di sistema**: Gestione DB, backup database, Gestione API keys 
 
 Per ogni analisi sarà possibile salvare il report nei seguenti formati: JSON, HTML, PDF.
 
