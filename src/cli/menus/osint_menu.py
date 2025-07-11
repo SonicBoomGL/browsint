@@ -63,6 +63,41 @@ def _export_menu() -> str:
     print("0. Annulla")
     return prompt_for_input("Scelta: ").strip()
 
+def show_osint_tables(cli_instance: 'ScraperCLI', profile_data: dict):
+    print(f"{Fore.CYAN}Recupero sommario profili OSINT salvati...{Style.RESET_ALL}")
+    profiles_summary = cli_instance.osint_extractor.get_all_osint_profiles_summary() # Recupera i profili OSINT dal database
+
+    if not profiles_summary:
+        print(f"{Fore.YELLOW}⚠ Nessun profilo OSINT trovato nel database.{Style.RESET_ALL}")
+        return
+
+    print(f"\n{Fore.BLUE}{'═' * 70}")
+    print(f"█ {Fore.WHITE}{'SOMMARIO PROFILI OSINT SALVATI':^66}{Fore.BLUE} █")
+    print(f"{'═' * 70}{Style.RESET_ALL}")
+
+    headers = ["ID", "Nome/Identificativo", "Tipo", "Dominio Assoc.", "Fonti Profilo", "Data Creazione DB"]
+    table_data = []
+    for summary in profiles_summary:
+        sources_str = ", ".join(summary.get("profile_sources", [])) or "Nessuna"
+        created_at_display = summary.get("created_at", "N/A")
+        if isinstance(created_at_display, datetime):
+            created_at_display = created_at_display.strftime("%Y-%m-%d %H:%M:%S")
+
+        table_data.append([
+            summary.get("id"),
+            summary.get("name"),
+            summary.get("type", "N/D").capitalize(),
+            summary.get("domain", "N/A"),
+            sources_str,
+            created_at_display
+        ])
+
+    if table_data:
+        print(tabulate(table_data, headers=headers, tablefmt="fancy_grid"))
+    else:
+        print(f"{Fore.YELLOW}Nessun dato da visualizzare.{Style.RESET_ALL}")
+        return
+
 def profile_domain_cli(cli_instance: 'ScraperCLI'):
     '''Gestisce l'interazione CLI per profilare un dominio web utilizzando strumenti OSINT.'''
     if not cli_instance.osint_extractor:
@@ -188,39 +223,8 @@ def profile_username_cli(cli_instance: 'ScraperCLI'):
 
 def show_osint_profiles_cli(cli_instance: 'ScraperCLI'):
     '''Mostra un sommario dei profili OSINT salvati nel database tramite CLI. Permette anche di visualizzare l'analisi di un profilo selezionato.'''
-    print(f"{Fore.CYAN}Recupero sommario profili OSINT salvati...{Style.RESET_ALL}")
-    profiles_summary = cli_instance.osint_extractor.get_all_osint_profiles_summary() # Recupera i profili OSINT dal database
+    show_osint_tables(cli_instance, profile_data=None)  # Mostra i profili OSINT salvati
 
-    if not profiles_summary:
-        print(f"{Fore.YELLOW}⚠ Nessun profilo OSINT trovato nel database.{Style.RESET_ALL}")
-        return
-
-    print(f"\n{Fore.BLUE}{'═' * 70}")
-    print(f"█ {Fore.WHITE}{'SOMMARIO PROFILI OSINT SALVATI':^66}{Fore.BLUE} █")
-    print(f"{'═' * 70}{Style.RESET_ALL}")
-
-    headers = ["ID", "Nome/Identificativo", "Tipo", "Dominio Assoc.", "Fonti Profilo", "Data Creazione DB"]
-    table_data = []
-    for summary in profiles_summary:
-        sources_str = ", ".join(summary.get("profile_sources", [])) or "Nessuna"
-        created_at_display = summary.get("created_at", "N/A")
-        if isinstance(created_at_display, datetime):
-            created_at_display = created_at_display.strftime("%Y-%m-%d %H:%M:%S")
-
-        table_data.append([
-            summary.get("id"),
-            summary.get("name"),
-            summary.get("type", "N/D").capitalize(),
-            summary.get("domain", "N/A"),
-            sources_str,
-            created_at_display
-        ])
-
-    if table_data:
-        print(tabulate(table_data, headers=headers, tablefmt="fancy_grid"))
-    else:
-        print(f"{Fore.YELLOW}Nessun dato da visualizzare.{Style.RESET_ALL}")
-        return
 
     # Prompt to view a profile's analysis
     id_input = prompt_for_input("\nInserisci l'ID del profilo da visualizzare (INVIO per tornare): ").strip()
@@ -239,9 +243,12 @@ def show_osint_profiles_cli(cli_instance: 'ScraperCLI'):
     cli_instance.osint_extractor._display_osint_profile(profile, profile.get('entity', {}).get('name', str(profile_id)))
     input(f"\n{Fore.CYAN}Premi INVIO per continuare...{Style.RESET_ALL}")
 
+
+    
 def anlyze_existing_profile_cli(cli_instance: 'ScraperCLI'):
     '''Gestisce l'interazione CLI per rieseguire analisi su un profilo OSINT esistente.'''
-    show_osint_profiles_cli(cli_instance)
+    
+    show_osint_tables(cli_instance, profile_data=None)  # Mostra i profili OSINT salvati
     try:
         id_input = prompt_for_input("Inserisci l'ID del target da analizzare: ")
         profile_id = int(id_input)
