@@ -90,9 +90,7 @@ class OSINTExtractor:
        if data_to_save:
             try:
                self._save_osint_profile(entity_id, source_type_for_saving, data_to_save)
-               # Potresti voler estrarre contatti anche dai dati social/email,
-               # la logica _extract_and_save_contacts è già abbastanza generica
-               #self._extract_and_save_contacts(entity_id, data_to_save, source_type_for_saving) # Già presente
+
             except Exception as e:
                  self.logger.error(f"Error during data saving or contact extraction for entity {entity_id}: {e}", exc_info=True)
 

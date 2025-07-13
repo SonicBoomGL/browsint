@@ -806,9 +806,16 @@ def formal_html_report_domain(data, target_input, domain_analyzed, shodan_skippe
         <div class='section'>
             <h2>DNS</h2>
             <table>
-                <tr><th>Name Servers</th><td>{', '.join(name_servers) if name_servers else 'N/A'}</td></tr>
-                <tr><th>A Records</th><td>{', '.join(a_records) if a_records else 'N/A'}</td></tr>
-                <tr><th>MX Records</th><td>{', '.join(mx_records) if mx_records else 'N/A'}</td></tr>
+                {''.join(
+                    f"<tr><th>{record_type} Records</th><td>{', '.join(dns[record_type]) if dns[record_type] else 'Nessuno trovato'}</td></tr>"
+                    for record_type in ["A", "AAAA", "MX", "NS", "TXT", "SOA"]
+                    if record_type in dns
+                )}
+                {''.join(
+                    f"<tr><th>{record_type} Records</th><td>{', '.join(records)}</td></tr>"
+                    for record_type, records in dns.items()
+                    if record_type not in ["A", "AAAA", "MX", "NS", "TXT", "SOA"] and records and any(str(r).strip() for r in records)
+                )}
             </table>
         </div>
         <div class='section'>
@@ -837,6 +844,7 @@ def formal_pdf_report_domain(data, target_input, domain_analyzed, shodan_skipped
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
     from reportlab.lib.styles import getSampleStyleSheet
     from reportlab.lib import colors
+
     whois = data.get("whois", {})
     dns = data.get("dns", {})
     shodan = data.get("shodan", {})
@@ -844,23 +852,54 @@ def formal_pdf_report_domain(data, target_input, domain_analyzed, shodan_skipped
     name_servers = dns.get("NS", [])
     a_records = dns.get("A", [])
     mx_records = dns.get("MX", [])
-    doc = SimpleDocTemplate(output_path, pagesize=A4, rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40)
+    txt_records = dns.get("TXT", [])
+    soa_records = dns.get("SOA", [])
+    domain = domain_analyzed
+
     styles = getSampleStyleSheet()
-    story = []
     styleH = styles['Heading1']
     styleH2 = styles['Heading2']
     styleN = styles['Normal']
+
+    def para(text):
+        return Paragraph(str(text), styleN)
+
+    # Helper per stile tabella senza bordi e con larghezza controllata
+    def clean_table(data):
+        return Table(
+            data,
+            hAlign='LEFT',
+            colWidths=[120, 350],
+            style=[
+                ('VALIGN', (0,0), (-1,-1), 'TOP'),
+                ('LEFTPADDING', (0,0), (-1,-1), 4),
+                ('RIGHTPADDING', (0,0), (-1,-1), 4),
+                ('TOPPADDING', (0,0), (-1,-1), 2),
+                ('BOTTOMPADDING', (0,0), (-1,-1), 2),
+                ('TEXTCOLOR', (0,0), (-1,-1), colors.black),
+                # No borders/separators
+                ('BOX', (0,0), (-1,-1), 0, colors.white),
+                ('INNERGRID', (0,0), (-1,-1), 0, colors.white),
+            ]
+        )
+
+    # Inizializza la variabile story
+    story = []
+
+    # Titolo
     story.append(Paragraph("OSINT Domain Profile Report", styleH))
     story.append(Spacer(1, 16))
+
     # Target
     story.append(Paragraph("Target", styleH2))
     data_target = [
         ["Input Originale", target_input],
-        ["Dominio Analizzato", domain_analyzed],
+        ["Dominio Analizzato", domain],
         ["Data Analisi", datetime.now().strftime('%Y-%m-%d %H:%M:%S')],
     ]
-    story.append(Table(data_target, hAlign='LEFT', style=[('BACKGROUND', (0,0), (-1,0), colors.lightgrey)]))
+    story.append(clean_table(data_target))
     story.append(Spacer(1, 12))
+
     # WHOIS
     story.append(Paragraph("WHOIS", styleH2))
     data_whois = [
@@ -872,27 +911,33 @@ def formal_pdf_report_domain(data, target_input, domain_analyzed, shodan_skipped
         ["Organization", whois.get("organization", "N/A")],
         ["Emails", ", ".join(emails) if emails else "Nessuna"],
     ]
-    story.append(Table(data_whois, hAlign='LEFT'))
+    story.append(clean_table(data_whois))
     story.append(Spacer(1, 12))
-    # DNS
+
+    # DNS Principali
     story.append(Paragraph("DNS", styleH2))
-    data_dns = [
-        ["Name Servers", ", ".join(name_servers) if name_servers else "N/A"],
-        ["A Records", ", ".join(a_records) if a_records else "N/A"],
-        ["MX Records", ", ".join(mx_records) if mx_records else "N/A"],
+    dns_main = [
+        ["A Records", ", ".join(a_records) if a_records else "Nessuno trovato"],
+        ["AAAA Records", ", ".join(dns.get("AAAA", [])) if dns.get("AAAA") else "Nessuno trovato"],
+        ["MX Records", ", ".join(mx_records) if mx_records else "Nessuno trovato"],
+        ["NS Records", ", ".join(name_servers) if name_servers else "Nessuno trovato"],
+        ["TXT Records", ", ".join(txt_records) if txt_records else "Nessuno trovato"],
+        ["SOA Records", ", ".join(soa_records) if soa_records else "Nessuno trovato"],
     ]
-    story.append(Table(data_dns, hAlign='LEFT'))
-    story.append(Spacer(1, 12))
-    # Shodan
-    story.append(Paragraph("Shodan", styleH2))
-    data_shodan = [
-        ["Scansione Saltata?", "Sì" if shodan_skipped else "No"],
-        ["IP", shodan.get("ip_str", "N/A")],
-        ["Organizzazione", shodan.get("org", "N/A")],
-        ["ISP", shodan.get("isp", "N/A")],
-        ["Porte Aperte", ", ".join(str(p.get("port")) for p in shodan.get("ports_info", [])) if shodan.get("ports_info") else "N/A"],
+    story.append(clean_table(dns_main))
+    story.append(Spacer(1, 8))
+
+    # DNS Extra (solo se hanno valori)
+    extra_dns = [
+        [f"{record_type} Records", ", ".join(records)]
+        for record_type, records in dns.items()
+        if record_type not in ["A", "AAAA", "MX", "NS", "TXT", "SOA"] and records and any(str(r).strip() for r in records)
     ]
-    story.append(Table(data_shodan, hAlign='LEFT'))
-    story.append(Spacer(1, 16))
+    if extra_dns:
+        story.append(Paragraph("Altri Record DNS", styleH2))
+        story.append(clean_table(extra_dns))
+        story.append(Spacer(1, 8))
+
     story.append(Paragraph("Generato da Browsint OSINT Tool", styleN))
+    doc = SimpleDocTemplate(output_path, pagesize=A4, rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40)
     doc.build(story)

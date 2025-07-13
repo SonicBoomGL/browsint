@@ -170,7 +170,7 @@ class ScraperCLI:
     def display_main_menu(self) -> str:
         '''Visualizza il menu principale e restituisce la scelta dell'utente.'''
         print(f"{Fore.BLUE}{'═' * 40}")
-        print(f"█ {Fore.WHITE}{'MENU PRINCIPALE BROWSINT':^36}{Fore.BLUE} █")
+        print(f"█ {Fore.WHITE}{'BROWSINT - MENU PRINCIPALE':^36}{Fore.BLUE} █")
         print(f"{'═' * 40}{Style.RESET_ALL}")
         print(f"{Fore.YELLOW}1.{Style.RESET_ALL} Download & Crawl Siti Web (per analisi offline)")
         print(f"{Fore.YELLOW}2.{Style.RESET_ALL} Scraping OSINT Web ")
