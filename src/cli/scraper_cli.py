@@ -174,14 +174,14 @@ class ScraperCLI:
     def display_main_menu(self) -> str:
         '''Visualizza il menu principale e restituisce la scelta dell'utente.'''
         print(f"{Fore.BLUE}{'═' * 40}")
-        print(f"█ {Fore.WHITE}{'MENU PRINCIPALE BROWSINT':^36}{Fore.BLUE} █")
+        print(f"█ {Fore.WHITE}{'BROWSINT - MENU PRINCIPALE':^36}{Fore.BLUE} █")
         print(f"{'═' * 40}{Style.RESET_ALL}")
-        print(f"{Fore.GREEN}1.{Style.RESET_ALL} Download & Crawl Siti Web (per analisi offline)")
-        print(f"{Fore.GREEN}2.{Style.RESET_ALL} Scraping OSINT Web ")
-        print(f"{Fore.GREEN}3.{Style.RESET_ALL} Investigazione Manuale")
-        print(f"{Fore.GREEN}4.{Style.RESET_ALL} Opzioni di sistema (DB, Cache, API Keys)\n")
-        print(f"{Fore.GREEN}0.{Style.RESET_ALL} Esci")
-        return prompt_for_input("\nScelta: ") 
+        print(f"{Fore.LIGHTBLUE_EX}1.{Style.RESET_ALL} Download & Crawl Siti Web (per analisi offline)")
+        print(f"{Fore.LIGHTBLUE_EX}2.{Style.RESET_ALL} Scraping OSINT Web ")
+        print(f"{Fore.LIGHTBLUE_EX}3.{Style.RESET_ALL} Investigazione Manuale")
+        print(f"{Fore.LIGHTBLUE_EX}4.{Style.RESET_ALL} Opzioni di sistema (DB, Cache, API Keys)\n")
+        print(f"{Fore.LIGHTBLUE_EX}0.{Style.RESET_ALL} Esci")
+        return prompt_for_input(f"{Fore.BLUE}\nScelta: {Style.RESET_ALL}") 
 
     def _handle_main_menu_choice(self, choice: str):
         '''Gestisce la scelta dell'utente nel menu principale.'''
