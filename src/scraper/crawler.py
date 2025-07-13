@@ -386,7 +386,7 @@ class Crawler:
         # Interactive choice for robots.txt compliance
         while True:
             print(f"\n{Fore.YELLOW}Do you want to respect robots.txt rules?{Style.RESET_ALL}")
-            print(f"  {Fore.GREEN}y{Style.RESET_ALL} - Yes, follow robots.txt rules (ethical)")
+            print(f"  {Fore.YELLOW}y{Style.RESET_ALL} - Yes, follow robots.txt rules (ethical)")
             print(f"  {Fore.RED}n{Style.RESET_ALL} - No, ignore robots.txt rules and crawl restricted paths")
             choice = input(f"\nYour choice (y/n): ").strip().lower()
             
@@ -666,7 +666,7 @@ class Crawler:
                 if social_results and not social_results.get("error"):
                     profiles = social_results.get("profiles", {})
                     if profiles:
-                        print(f"{Fore.GREEN}✓ Trovati {len(profiles)} possibili profili social{Style.RESET_ALL}")
+                        print(f"{Fore.YELLOW}✓ Trovati {len(profiles)} possibili profili social{Style.RESET_ALL}")
                         
                         # Aggiungi ogni profilo trovato alla lista delle entità
                         for platform, data in profiles.items():

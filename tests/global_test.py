@@ -130,15 +130,15 @@ def quick_test_menu():
         print(f"\n{Fore.BLUE}{'═' * 40}")
         print(f"█ {Fore.WHITE}{'MENU TEST RAPIDO':^36}{Fore.BLUE} █")
         print(f"{'═' * 40}{Style.RESET_ALL}")
-        print(f"{Fore.GREEN}1.{Style.RESET_ALL} Test Analisi Pagina Singola (OSINT base)")
-        print(f"{Fore.GREEN}2.{Style.RESET_ALL} Test Crawl Base")
-        print(f"{Fore.GREEN}3.{Style.RESET_ALL} Test Crawl con OSINT")
-        print(f"{Fore.GREEN}4.{Style.RESET_ALL} Test Profilazione Dominio")
-        print(f"{Fore.GREEN}5.{Style.RESET_ALL} Test Profilazione Email")
-        print(f"{Fore.GREEN}6.{Style.RESET_ALL} Test Profilazione Username")
-        print(f"{Fore.GREEN}7.{Style.RESET_ALL} Mostra Profili OSINT salvati")
-        print(f"{Fore.GREEN}8.{Style.RESET_ALL} Mostra API Keys configurate")
-        print(f"{Fore.GREEN}0.{Style.RESET_ALL} Esci dal menu test")
+        print(f"{Fore.YELLOW}1.{Style.RESET_ALL} Test Analisi Pagina Singola (OSINT base)")
+        print(f"{Fore.YELLOW}2.{Style.RESET_ALL} Test Crawl Base")
+        print(f"{Fore.YELLOW}3.{Style.RESET_ALL} Test Crawl con OSINT")
+        print(f"{Fore.YELLOW}4.{Style.RESET_ALL} Test Profilazione Dominio")
+        print(f"{Fore.YELLOW}5.{Style.RESET_ALL} Test Profilazione Email")
+        print(f"{Fore.YELLOW}6.{Style.RESET_ALL} Test Profilazione Username")
+        print(f"{Fore.YELLOW}7.{Style.RESET_ALL} Mostra Profili OSINT salvati")
+        print(f"{Fore.YELLOW}8.{Style.RESET_ALL} Mostra API Keys configurate")
+        print(f"{Fore.YELLOW}0.{Style.RESET_ALL} Esci dal menu test")
 
         choice = input(f"\n{Fore.CYAN}Seleziona un test da eseguire: {Style.RESET_ALL}").strip()
 
@@ -170,7 +170,7 @@ def quick_test_menu():
         elif choice == "8":
             test_config_menu()
         elif choice == "0":
-            print(f"{Fore.GREEN}Uscita dal menu test.{Style.RESET_ALL}")
+            print(f"{Fore.YELLOW}Uscita dal menu test.{Style.RESET_ALL}")
             break
         else:
             print(f"{Fore.RED}Scelta non valida. Riprova.{Style.RESET_ALL}")

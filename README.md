@@ -1,7 +1,7 @@
 # Browsint
 
 ![Python Version](https://img.shields.io/badge/Python-3.9%2B-blue.svg)
-![License](https://img.shields.io/badge/License-MIT-green.svg)
+![License](https://img.shields.io/badge/License-MIT-YELLOW.svg)
 ![Status](https://img.shields.io/badge/Status-Beta-orange.svg)
 
 ## 📝 Descrizione

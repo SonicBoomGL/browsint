@@ -703,7 +703,7 @@ class OSINTExtractor:
         # Hunter.io data
         hunter_data = email_data.get("hunter", {})
         if hunter_data and not hunter_data.get("error"):
-            print(f"\n{Fore.GREEN}[HUNTER.IO RESULTS]{Style.RESET_ALL}")
+            print(f"\n{Fore.YELLOW}[HUNTER.IO RESULTS]{Style.RESET_ALL}")
             
             # Email verification
             verification = hunter_data.get("verification", {})
@@ -744,7 +744,7 @@ class OSINTExtractor:
                 if len(breaches) > 5:
                     print(f"    ... and {len(breaches) - 5} more breaches")
             else:
-                print(f"  {Fore.GREEN}✓ No breaches found{Style.RESET_ALL}")
+                print(f"  {Fore.YELLOW}✓ No breaches found{Style.RESET_ALL}")
             
             # Paste data
             pastes = hibp_data.get("pastes", [])
@@ -817,7 +817,7 @@ class OSINTExtractor:
             
             # Found profiles
             if found_platforms:
-                print(f"\n{Fore.GREEN}[FOUND PROFILES] ({len(found_platforms)} platforms){Style.RESET_ALL}")
+                print(f"\n{Fore.YELLOW}[FOUND PROFILES] ({len(found_platforms)} platforms){Style.RESET_ALL}")
                 for platform, data in found_platforms:
                     print(f"  ✓ {platform.upper()}")
                     print(f"    URL: {data.get('url', 'N/A')}")
@@ -831,7 +831,7 @@ class OSINTExtractor:
             # Statistics
             print(f"\n{Fore.CYAN}[STATISTICS]{Style.RESET_ALL}")
             print(f"  Total Platforms Checked: {len(platforms)}")
-            print(f"  ✓ Found: {Fore.GREEN}{len(found_platforms)}{Style.RESET_ALL}")
+            print(f"  ✓ Found: {Fore.YELLOW}{len(found_platforms)}{Style.RESET_ALL}")
             print(f"  ✗ Not Found: {Fore.YELLOW}{len(not_found_platforms)}{Style.RESET_ALL}")
             print(f"  ⚠ Errors: {Fore.RED}{len(error_platforms)}{Style.RESET_ALL}")
             
@@ -912,7 +912,7 @@ class OSINTExtractor:
         total_exposures = breach_count + paste_count
         
         if total_exposures == 0:
-            return f"{Fore.GREEN}LOW{Style.RESET_ALL}"
+            return f"{Fore.YELLOW}LOW{Style.RESET_ALL}"
         elif total_exposures <= 2:
             return f"{Fore.YELLOW}MEDIUM{Style.RESET_ALL}"
         elif total_exposures <= 5:
@@ -931,7 +931,7 @@ class OSINTExtractor:
             str -> Descrizione dell'impronta digitale colorata per la visualizzazione
         '''
         if profile_count == 0:
-            return f"{Fore.GREEN}Minimal{Style.RESET_ALL}"
+            return f"{Fore.YELLOW}Minimal{Style.RESET_ALL}"
         elif profile_count <= 3:
             return f"{Fore.YELLOW}Low{Style.RESET_ALL}"
         elif profile_count <= 7:

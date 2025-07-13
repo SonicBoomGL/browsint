@@ -26,10 +26,10 @@ def display_download_menu() -> str:
     print(f"\n{Fore.BLUE}{'═' * 40}")
     print(f"█ {Fore.WHITE}{'CRAWL & DOWNLOAD':^36}{Fore.BLUE} █")
     print(f"{'═' * 40}{Style.RESET_ALL}")
-    print(f"{Fore.GREEN}1.{Style.RESET_ALL} Downlod singola pagina web (HTML + Struttura)")
-    print(f"{Fore.GREEN}2.{Style.RESET_ALL} Download multiplo da file (HTML + Struttura)")
-    print(f"{Fore.GREEN}3.{Style.RESET_ALL} Crawl e download struttura sito web\n")
-    print(f"{Fore.GREEN}0.{Style.RESET_ALL} Torna al menu principale")
+    print(f"{Fore.YELLOW}1.{Style.RESET_ALL} Downlod singola pagina web (HTML + Struttura)")
+    print(f"{Fore.YELLOW}2.{Style.RESET_ALL} Download multiplo da file (HTML + Struttura)")
+    print(f"{Fore.YELLOW}3.{Style.RESET_ALL} Crawl e download struttura sito web\n")
+    print(f"{Fore.YELLOW}0.{Style.RESET_ALL} Torna al menu principale")
 
     return prompt_for_input("\nScelta: ")
 
@@ -61,7 +61,7 @@ def download_single_url(cli_instance: 'ScraperCLI') -> None:
     try:
         content = cli_instance.web_fetcher.fetch(url)
         if content:
-            print(f"\n{Fore.GREEN}✓ Contenuto scaricato ({len(content)} bytes)")
+            print(f"\n{Fore.YELLOW}✓ Contenuto scaricato ({len(content)} bytes)")
             save_option = prompt_for_input("\nSalvare il contenuto? (s/n): ").lower()
             if save_option == "s":
                 url_parsed = urlparse(url)
@@ -75,7 +75,7 @@ def download_single_url(cli_instance: 'ScraperCLI') -> None:
                 try:
                     with open(filepath, "w", encoding="utf-8") as f:
                         f.write(content)
-                    print(f"{Fore.GREEN}✓ Contenuto salvato in: {filepath}")
+                    print(f"{Fore.YELLOW}✓ Contenuto salvato in: {filepath}")
                 except Exception as e_save:
                     logger.error(f"Error saving file {filepath}: {e_save}", exc_info=True)
                     print(f"{Fore.RED}✗ Errore nel salvataggio del file: {e_save}")
@@ -123,7 +123,7 @@ def download_multiple_urls(cli_instance: 'ScraperCLI') -> None:
                         cf.write(content)
                     report_lines.append(f"[SUCCESS] {url} -> Salvato in {file_save_path} ({len(content)} bytes)")
                     success_count += 1
-                    print(f"{Fore.GREEN}✓ Successo.{Style.RESET_ALL}")
+                    print(f"{Fore.YELLOW}✓ Successo.{Style.RESET_ALL}")
                 else:
                     report_lines.append(f"[FAILED] {url} -> Nessun contenuto o errore download.")
                     print(f"{Fore.RED}✗ Fallito (nessun contenuto).{Style.RESET_ALL}")
@@ -140,7 +140,7 @@ def download_multiple_urls(cli_instance: 'ScraperCLI') -> None:
         with open(report_file_path, "w", encoding="utf-8") as rf:
             rf.write("\n".join(report_lines))
 
-        print(f"\n{Fore.GREEN}✓ Download batch completato. Report salvato in: {report_file_path}")
+        print(f"\n{Fore.YELLOW}✓ Download batch completato. Report salvato in: {report_file_path}")
         print(f"{Fore.CYAN}File salvati in: {batch_download_dir}{Style.RESET_ALL}")
 
     except Exception as e_main:
@@ -201,7 +201,7 @@ def start_website_crawl_base(cli_instance: 'ScraperCLI') -> None:
         # Ripristina l'osint_extractor originale del crawler per operazioni future
         crawler_instance.osint_extractor = original_crawler_osint_extractor
 
-        print(f"\n{Fore.GREEN}✓ Crawling per {url} completato.{Style.RESET_ALL}")
+        print(f"\n{Fore.YELLOW}✓ Crawling per {url} completato.{Style.RESET_ALL}")
         _display_base_crawl_stats(crawl_stats)
 
     except Exception as e:
@@ -216,7 +216,7 @@ def start_website_crawl_base(cli_instance: 'ScraperCLI') -> None:
 
 def _display_base_crawl_stats(stats: dict) -> None:
     '''Visualizza statistiche di base del crawling completato.'''
-    print(f"\n{Fore.GREEN}✓ Crawling completato{Style.RESET_ALL}")
+    print(f"\n{Fore.YELLOW}✓ Crawling completato{Style.RESET_ALL}")
     print(f"\nStatistiche di base:")
     print(f"  • URLs visitati: {stats.get('urls_visited', 0)}")
     print(f"  • Pagine salvate (HTML): {stats.get('pages_saved', 0)}") # Testo aggiornato

@@ -19,15 +19,15 @@ def display_db_menu() -> str:
     print(f"█ {Fore.WHITE}{'GESTIONE DATABASE E API':^36}{Fore.BLUE} █")
     print(f"{'═' * 40}{Style.RESET_ALL}")
     print(f"{Fore.CYAN}=== Database ==={Style.RESET_ALL}")
-    print(f"{Fore.GREEN}1.{Style.RESET_ALL} Informazioni Generali Database")
-    print(f"{Fore.GREEN}2.{Style.RESET_ALL} Esegui Backup Database")
-    print(f"{Fore.GREEN}3.{Style.RESET_ALL} Svuota Cache delle Query")
-    print(f"{Fore.GREEN}4.{Style.RESET_ALL} Gestione Tabelle Database")
+    print(f"{Fore.YELLOW}1.{Style.RESET_ALL} Informazioni Generali Database")
+    print(f"{Fore.YELLOW}2.{Style.RESET_ALL} Esegui Backup Database")
+    print(f"{Fore.YELLOW}3.{Style.RESET_ALL} Svuota Cache delle Query")
+    print(f"{Fore.YELLOW}4.{Style.RESET_ALL} Gestione Tabelle Database")
     print(f"\n{Fore.CYAN}=== API Keys ==={Style.RESET_ALL}")
-    print(f"{Fore.GREEN}5.{Style.RESET_ALL} Visualizza API Keys configurate")
-    print(f"{Fore.GREEN}6.{Style.RESET_ALL} Aggiungi/Aggiorna API Key")
-    print(f"{Fore.GREEN}7.{Style.RESET_ALL} Rimuovi API Key")
-    print(f"\n{Fore.GREEN}0.{Style.RESET_ALL} Torna al menu Opzioni Generali")
+    print(f"{Fore.YELLOW}5.{Style.RESET_ALL} Visualizza API Keys configurate")
+    print(f"{Fore.YELLOW}6.{Style.RESET_ALL} Aggiungi/Aggiorna API Key")
+    print(f"{Fore.YELLOW}7.{Style.RESET_ALL} Rimuovi API Key")
+    print(f"\n{Fore.YELLOW}0.{Style.RESET_ALL} Torna al menu Opzioni Generali")
 
     return prompt_for_input("\nScelta: ")
 
@@ -60,9 +60,9 @@ def _display_db_info(cli_instance: 'ScraperCLI') -> None:
         print(f"{'═' * 40}{Style.RESET_ALL}")
         
         # Mostra le opzioni disponibili
-        print(f"{Fore.GREEN}1.{Style.RESET_ALL} Mostra info di tutti i database")
-        print(f"{Fore.GREEN}2.{Style.RESET_ALL} Seleziona database specifico\n")
-        print(f"{Fore.GREEN}0.{Style.RESET_ALL} Torna al menu precedente")
+        print(f"{Fore.YELLOW}1.{Style.RESET_ALL} Mostra info di tutti i database")
+        print(f"{Fore.YELLOW}2.{Style.RESET_ALL} Seleziona database specifico\n")
+        print(f"{Fore.YELLOW}0.{Style.RESET_ALL} Torna al menu precedente")
         
         choice = prompt_for_input("\nScelta: ").strip()
         
@@ -121,9 +121,9 @@ def _perform_db_backup(cli_instance: 'ScraperCLI') -> None:
         print(f"█ {Fore.WHITE}{'BACKUP DATABASE':^36}{Fore.BLUE} █")
         print(f"{'═' * 40}{Style.RESET_ALL}")
         
-        print(f"{Fore.GREEN}1.{Style.RESET_ALL} Backup di tutti i database")
-        print(f"{Fore.GREEN}2.{Style.RESET_ALL} Backup database specifico\n")
-        print(f"{Fore.GREEN}0.{Style.RESET_ALL} Torna al menu precedente")
+        print(f"{Fore.YELLOW}1.{Style.RESET_ALL} Backup di tutti i database")
+        print(f"{Fore.YELLOW}2.{Style.RESET_ALL} Backup database specifico\n")
+        print(f"{Fore.YELLOW}0.{Style.RESET_ALL} Torna al menu precedente")
         
         choice = prompt_for_input("\nScelta: ").strip()
         
@@ -133,7 +133,7 @@ def _perform_db_backup(cli_instance: 'ScraperCLI') -> None:
                 try:
                     success, result = cli_instance.db_manager.backup_database(db_name)
                     if success:
-                        print(f"{Fore.GREEN}✓ Backup {db_name} completato in: {result}{Style.RESET_ALL}")
+                        print(f"{Fore.YELLOW}✓ Backup {db_name} completato in: {result}{Style.RESET_ALL}")
                         backup_size = Path(result).stat().st_size / (1024 * 1024)
                         print(f"{Fore.CYAN}Dimensione backup: {backup_size:.2f} MB{Style.RESET_ALL}")
                     else:
@@ -159,7 +159,7 @@ def _perform_db_backup(cli_instance: 'ScraperCLI') -> None:
                 print(f"\n{Fore.YELLOW}⏳ Backup database {db_name} in corso...{Style.RESET_ALL}")
                 success, result = cli_instance.db_manager.backup_database(db_name)
                 if success:
-                    print(f"{Fore.GREEN}✓ Backup completato in: {result}{Style.RESET_ALL}")
+                    print(f"{Fore.YELLOW}✓ Backup completato in: {result}{Style.RESET_ALL}")
                     backup_size = Path(result).stat().st_size / (1024 * 1024)
                     print(f"{Fore.CYAN}Dimensione backup: {backup_size:.2f} MB{Style.RESET_ALL}")
                 else:
@@ -178,16 +178,16 @@ def _clear_query_cache(cli_instance: 'ScraperCLI') -> None:
         print(f"█ {Fore.WHITE}{'GESTIONE CACHE':^36}{Fore.BLUE} █")
         print(f"{'═' * 40}{Style.RESET_ALL}")
         
-        print(f"{Fore.GREEN}1.{Style.RESET_ALL} Svuota tutta la cache")
-        print(f"{Fore.GREEN}2.{Style.RESET_ALL} Svuota cache per database specifico")
-        print(f"{Fore.GREEN}0.{Style.RESET_ALL} Torna al menu precedente")
+        print(f"{Fore.YELLOW}1.{Style.RESET_ALL} Svuota tutta la cache")
+        print(f"{Fore.YELLOW}2.{Style.RESET_ALL} Svuota cache per database specifico")
+        print(f"{Fore.YELLOW}0.{Style.RESET_ALL} Torna al menu precedente")
         
         choice = prompt_for_input("\nScelta: ").strip()
         
         if choice == "1":
             try:
                 cli_instance.db_manager.clear_cache()
-                print(f"{Fore.GREEN}✓ Cache delle query svuotata con successo{Style.RESET_ALL}")
+                print(f"{Fore.YELLOW}✓ Cache delle query svuotata con successo{Style.RESET_ALL}")
             except Exception as e:
                 print(f"{Fore.RED}✗ Errore pulizia cache: {e}{Style.RESET_ALL}")
             input(f"\n{Fore.CYAN}Premi INVIO per continuare...{Style.RESET_ALL}")
@@ -208,7 +208,7 @@ def _clear_query_cache(cli_instance: 'ScraperCLI') -> None:
             try:
                 # Chiamiamo clear_cache senza il parametro del database
                 cli_instance.db_manager.clear_cache()
-                print(f"{Fore.GREEN}✓ Cache delle query svuotata con successo{Style.RESET_ALL}")
+                print(f"{Fore.YELLOW}✓ Cache delle query svuotata con successo{Style.RESET_ALL}")
             except Exception as e:
                 print(f"{Fore.RED}✗ Errore pulizia cache: {e}{Style.RESET_ALL}")
             input(f"\n{Fore.CYAN}Premi INVIO per continuare...{Style.RESET_ALL}")
@@ -223,10 +223,10 @@ def _clear_specific_table(cli_instance: 'ScraperCLI') -> None:
         print(f"█ {Fore.WHITE}{'GESTIONE TABELLE':^36}{Fore.BLUE} █")
         print(f"{'═' * 40}{Style.RESET_ALL}")
         
-        print(f"{Fore.GREEN}1.{Style.RESET_ALL} Svuota tutte le tabelle di tutti i database")
-        print(f"{Fore.GREEN}2.{Style.RESET_ALL} Svuota tutte le tabelle di un database")
-        print(f"{Fore.GREEN}3.{Style.RESET_ALL} Svuota una tabella specifica")
-        print(f"{Fore.GREEN}0.{Style.RESET_ALL} Torna al menu precedente")
+        print(f"{Fore.YELLOW}1.{Style.RESET_ALL} Svuota tutte le tabelle di tutti i database")
+        print(f"{Fore.YELLOW}2.{Style.RESET_ALL} Svuota tutte le tabelle di un database")
+        print(f"{Fore.YELLOW}3.{Style.RESET_ALL} Svuota una tabella specifica")
+        print(f"{Fore.YELLOW}0.{Style.RESET_ALL} Torna al menu precedente")
         
         choice = prompt_for_input("\nScelta: ").strip()
         
@@ -255,7 +255,7 @@ def _clear_specific_table(cli_instance: 'ScraperCLI') -> None:
                         try:
                             success, cleared = cli_instance.db_manager.clear_all_tables(db_name)
                             if success:
-                                print(f"{Fore.GREEN}✓ Tabelle di {db_name} svuotate con successo:{Style.RESET_ALL}")
+                                print(f"{Fore.YELLOW}✓ Tabelle di {db_name} svuotate con successo:{Style.RESET_ALL}")
                                 for table in cleared:
                                     print(f"  - {table}")
                             else:
@@ -303,7 +303,7 @@ def _clear_specific_table(cli_instance: 'ScraperCLI') -> None:
                     if double_confirm == 's':
                         success, cleared = cli_instance.db_manager.clear_all_tables(db_name)
                         if success:
-                            print(f"{Fore.GREEN}✓ Tabelle di {db_name} svuotate con successo:{Style.RESET_ALL}")
+                            print(f"{Fore.YELLOW}✓ Tabelle di {db_name} svuotate con successo:{Style.RESET_ALL}")
                             for table in cleared:
                                 print(f"  - {table}")
                         else:
@@ -351,7 +351,7 @@ def _clear_specific_table(cli_instance: 'ScraperCLI') -> None:
                     
                     if confirm == 's':
                         if cli_instance.db_manager.clear_table(table_name, db_name):
-                            print(f"{Fore.GREEN}✓ Tabella {table_name} svuotata con successo{Style.RESET_ALL}")
+                            print(f"{Fore.YELLOW}✓ Tabella {table_name} svuotata con successo{Style.RESET_ALL}")
                         else:
                             print(f"{Fore.RED}✗ Errore durante lo svuotamento della tabella{Style.RESET_ALL}")
                 
@@ -423,7 +423,7 @@ def add_api_key(cli_instance: 'ScraperCLI') -> None:
             # Aggiorna l'estrattore OSINT
             cli_instance.osint_extractor.api_keys = cli_instance.api_keys
             
-            print(f"{Fore.GREEN}✓ API key per '{service_name}' salvata con successo.{Style.RESET_ALL}")
+            print(f"{Fore.YELLOW}✓ API key per '{service_name}' salvata con successo.{Style.RESET_ALL}")
         else:
             print(f"{Fore.RED}✗ Scelta non valida.")
     except ValueError:
@@ -469,7 +469,7 @@ def remove_api_key(cli_instance: 'ScraperCLI') -> None:
                 # Aggiorna l'estrattore OSINT
                 cli_instance.osint_extractor.api_keys = cli_instance.api_keys
                 
-                print(f"{Fore.GREEN}✓ API key per '{service_name}' rimossa con successo.{Style.RESET_ALL}")
+                print(f"{Fore.YELLOW}✓ API key per '{service_name}' rimossa con successo.{Style.RESET_ALL}")
             else:
                 print(f"{Fore.YELLOW}Operazione annullata.{Style.RESET_ALL}")
         else:

@@ -121,21 +121,17 @@ class ScraperCLI:
         Mostra un banner ASCII art all'avvio dell'applicazione.
         '''
         banner = fr"""{Fore.CYAN}
- _____                                                                          _____ 
-( ___ )------------------------------------------------------------------------( ___ )
- |   |                                                                          |   | 
- |   |  ______   _______  _______           _______ _________ _       _________ |   | 
- |   | (  ___ \ (  ____ )(  ___  )|\     /|(  ____ \\__   __/( (    /|\__   __/ |   | 
- |   | | (   ) )| (    )|| (   ) || )   ( || (    \/   ) (   |  \  ( |   ) (    |   | 
- |   | | (__/ / | (____)|| |   | || | _ | || (_____    | |   | (\ \) |   | |    |   | 
- |   | |  __ (  |     __)| |   | || |( )| |(_____  )   | |   | | \   |   | |    |   | 
- |   | | (  \ \ | (\ (   | |   | || || || |      ) |   | |   | | \   |   | |    |   | 
- |   | | )___) )| ) \ \__| (___) || () () |/\____) |___) (___| )  \  |   | |    |   | 
- |   | |/ \___/ |/   \__/(_______)(_______)\_______)\_______/|/    )_)   )_(    |   | 
- |___|                                                                          |___| 
-(_____)------------------------------------------------------------------------(_____)
+██████╗ ██████╗  ██████╗ ██╗    ██╗███████╗██╗███╗   ██╗████████╗
+██╔══██╗██╔══██╗██╔═══██╗██║    ██║██╔════╝██║████╗  ██║╚══██╔══╝
+██████╔╝██████╔╝██║   ██║██║ █╗ ██║███████╗██║██╔██╗ ██║   ██║   
+██╔══██╗██╔══██╗██║   ██║██║███╗██║╚════██║██║██║╚██╗██║   ██║   
+██████╔╝██║  ██║╚██████╔╝╚███╔███╔╝███████║██║██║ ╚████║   ██║   
+╚═════╝ ╚═╝  ╚═╝ ╚═════╝  ╚══╝╚══╝ ╚══════╝╚═╝╚═╝  ╚═══╝   ╚═╝   
             {Fore.YELLOW}Web Intelligence & OSINT Collection Tool{Style.RESET_ALL}
             {Fore.BLUE}Version ALPHA{Style.RESET_ALL}
+
+{Fore.LIGHTBLUE_EX}{'='*60}{Style.RESET_ALL}
+
             """
         print(banner)
         time.sleep(0.5)
@@ -162,11 +158,11 @@ class ScraperCLI:
                     choice = self.display_main_menu()
                     self._handle_main_menu_choice(choice)
                 except KeyboardInterrupt:
-                    print(f"\n{Fore.GREEN}Grazie per aver usato Browsint! Arrivederci!{Style.RESET_ALL}")
+                    print(f"\n{Fore.YELLOW}Grazie per aver usato Browsint! Arrivederci!{Style.RESET_ALL}")
                     return
 
         except KeyboardInterrupt:
-            print(f"\n\n{Fore.GREEN}Grazie per aver usato Browsint! Arrivederci!{Style.RESET_ALL}")
+            print(f"\n\n{Fore.YELLOW}Grazie per aver usato Browsint! Arrivederci!{Style.RESET_ALL}")
         except Exception as e:
             logger.error(f"Errore generale nell'applicazione: {e}", exc_info=True)
             print(f"\n{Fore.RED}✗ Si è verificato un errore imprevisto: {e}{Style.RESET_ALL}")
@@ -176,11 +172,11 @@ class ScraperCLI:
         print(f"{Fore.BLUE}{'═' * 40}")
         print(f"█ {Fore.WHITE}{'MENU PRINCIPALE BROWSINT':^36}{Fore.BLUE} █")
         print(f"{'═' * 40}{Style.RESET_ALL}")
-        print(f"{Fore.GREEN}1.{Style.RESET_ALL} Download & Crawl Siti Web (per analisi offline)")
-        print(f"{Fore.GREEN}2.{Style.RESET_ALL} Scraping OSINT Web ")
-        print(f"{Fore.GREEN}3.{Style.RESET_ALL} Investigazione Manuale")
-        print(f"{Fore.GREEN}4.{Style.RESET_ALL} Opzioni di sistema (DB, Cache, API Keys)\n")
-        print(f"{Fore.GREEN}0.{Style.RESET_ALL} Esci")
+        print(f"{Fore.YELLOW}1.{Style.RESET_ALL} Download & Crawl Siti Web (per analisi offline)")
+        print(f"{Fore.YELLOW}2.{Style.RESET_ALL} Scraping OSINT Web ")
+        print(f"{Fore.YELLOW}3.{Style.RESET_ALL} Investigazione Manuale")
+        print(f"{Fore.YELLOW}4.{Style.RESET_ALL} Opzioni di sistema (DB, Cache, API Keys)\n")
+        print(f"{Fore.YELLOW}0.{Style.RESET_ALL} Esci")
         return prompt_for_input("\nScelta: ") 
 
     def _handle_main_menu_choice(self, choice: str):
@@ -191,7 +187,7 @@ class ScraperCLI:
             case "3": self._osint_menu()
             case "4": self._options_menu()
             case "0":
-                print(f"\n{Fore.GREEN}Grazie per aver usato Browsint! Arrivederci!{Style.RESET_ALL}")
+                print(f"\n{Fore.YELLOW}Grazie per aver usato Browsint! Arrivederci!{Style.RESET_ALL}")
                 self.running = False
             case _:
                 print(f"{Fore.RED}✗ Scelta non valida")

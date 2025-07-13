@@ -29,9 +29,9 @@ def display_scraping_menu() -> str:
     print(f"\n{Fore.BLUE}{'═' * 40}")
     print(f"█ {Fore.WHITE}{'OSINT SCRAPING':^36}{Fore.BLUE} █")
     print(f"{'═' * 40}{Style.RESET_ALL}")
-    print(f"{Fore.GREEN}1.{Style.RESET_ALL} Analizza una pagina web (Estrazione dati base)")
-    print(f"{Fore.GREEN}2.{Style.RESET_ALL} Crawl struttura web con estrazione OSINT \n")
-    print(f"{Fore.GREEN}0.{Style.RESET_ALL} Torna al menu principale")
+    print(f"{Fore.YELLOW}1.{Style.RESET_ALL} Analizza una pagina web (Estrazione dati base)")
+    print(f"{Fore.YELLOW}2.{Style.RESET_ALL} Crawl struttura web con estrazione OSINT \n")
+    print(f"{Fore.YELLOW}0.{Style.RESET_ALL} Torna al menu principale")
 
     return prompt_for_input("\nScelta: ")
 
@@ -204,7 +204,7 @@ def display_crawl_osint_report(osint_summary: dict, target_url: str) -> None:
 
         # Mostra tabella email
         if emails_data:
-            print(f"\n{Fore.GREEN}--- 📧 Email Trovate e Profilate ---{Style.RESET_ALL}")
+            print(f"\n{Fore.YELLOW}--- 📧 Email Trovate e Profilate ---{Style.RESET_ALL}")
             print(tabulate(
                 emails_data,
                 headers=["Email", "Pagina", "Stato HunterIO", "N° Breaches"],
@@ -213,7 +213,7 @@ def display_crawl_osint_report(osint_summary: dict, target_url: str) -> None:
         
         # Mostra tabella telefoni
         if phones_data:
-            print(f"\n{Fore.GREEN}--- 📱 Numeri di Telefono Trovati ---{Style.RESET_ALL}")
+            print(f"\n{Fore.YELLOW}--- 📱 Numeri di Telefono Trovati ---{Style.RESET_ALL}")
             print(tabulate(
                 phones_data,
                 headers=["Numero", "Pagina"],
@@ -222,7 +222,7 @@ def display_crawl_osint_report(osint_summary: dict, target_url: str) -> None:
             
         # Mostra tabella social media
         if social_data:
-            print(f"\n{Fore.GREEN}--- 🌐 Profili Social Media ---{Style.RESET_ALL}")
+            print(f"\n{Fore.YELLOW}--- 🌐 Profili Social Media ---{Style.RESET_ALL}")
             print(tabulate(
                 social_data,
                 headers=["Piattaforma", "Username", "URL", "Confidenza"],
@@ -232,7 +232,7 @@ def display_crawl_osint_report(osint_summary: dict, target_url: str) -> None:
         # Mostra tecnologie rilevate
         page_technologies = osint_summary.get("page_technologies", {})
         if page_technologies:
-            print(f"\n{Fore.GREEN}--- 💻 Tecnologie Rilevate per Pagina ---{Style.RESET_ALL}")
+            print(f"\n{Fore.YELLOW}--- 💻 Tecnologie Rilevate per Pagina ---{Style.RESET_ALL}")
             tech_data = []
             for page, techs in page_technologies.items():
                 tech_data.append([
@@ -257,7 +257,7 @@ def display_crawl_osint_report(osint_summary: dict, target_url: str) -> None:
 
 def _display_base_crawl_stats(stats: dict) -> None:
     '''Visualizza statistiche di base del crawling completato.'''
-    print(f"\n{Fore.GREEN}✓ Crawling OSINT completato")
+    print(f"\n{Fore.YELLOW}✓ Crawling OSINT completato")
     print(f"\nStatistiche di base:")
     print(f"  • URLs visitati: {stats.get('urls_visited', 0)}")
     print(f"  • Pagine salvate: {stats.get('pages_saved', 0)}")
@@ -317,19 +317,19 @@ def _export_analysis_results(cli_instance: 'ScraperCLI', url: str, parsed_data: 
             json_path = analysis_dir / f"analysis_{domain}_{timestamp}.json"
             with open(json_path, 'w', encoding='utf-8') as f:
                 json.dump(export_data, f, indent=4, ensure_ascii=False, default=json_serial)
-            print(f"\n{Fore.GREEN}✓ Esportato JSON: {json_path}{Style.RESET_ALL}")
+            print(f"\n{Fore.YELLOW}✓ Esportato JSON: {json_path}{Style.RESET_ALL}")
             exported = True
         if export_choice in {"2", "4"}:
             html_path = analysis_dir / f"analysis_{domain}_{timestamp}.html"
             html_report = formal_html_report_page(url, parsed_data, osint_data, save_paths)
             with open(html_path, 'w', encoding='utf-8') as f:
                 f.write(html_report)
-            print(f"{Fore.GREEN}✓ Esportato HTML: {html_path}{Style.RESET_ALL}")
+            print(f"{Fore.YELLOW}✓ Esportato HTML: {html_path}{Style.RESET_ALL}")
             exported = True
         if export_choice in {"3", "4"}:
             pdf_path = pdf_dir / f"analysis_{domain}_{timestamp}.pdf"
             create_pdf_page_report(url, parsed_data, osint_data, save_paths, str(pdf_path))
-            print(f"{Fore.GREEN}✓ Esportato PDF: {pdf_path}{Style.RESET_ALL}")
+            print(f"{Fore.YELLOW}✓ Esportato PDF: {pdf_path}{Style.RESET_ALL}")
             exported = True
         if not exported:
             print(f"{Fore.YELLOW}Nessun formato selezionato per l'esportazione.{Style.RESET_ALL}")
