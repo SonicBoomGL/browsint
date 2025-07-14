@@ -3,7 +3,7 @@ Scraping menu module for the Browsint CLI application.
 """
 from colorama import Fore, Style
 from typing import TYPE_CHECKING
-from ..utils import clear_screen, prompt_for_input, json_serial
+from ..utils import clear_screen, prompt_for_input, json_serial, export_menu
 import json
 import validators
 import time
@@ -33,7 +33,7 @@ def display_scraping_menu() -> str:
     print(f"{Fore.YELLOW}2.{Style.RESET_ALL} Crawl struttura web con estrazione OSINT \n")
     print(f"{Fore.YELLOW}0.{Style.RESET_ALL} Torna al menu principale")
 
-    return prompt_for_input("\nScelta: ")
+    return prompt_for_input("Scelta: ")
 
 def handle_scraping_choice(cli_instance: 'ScraperCLI', choice: str) -> None:
     '''
@@ -56,6 +56,9 @@ def analyze_page_structure(cli_instance: 'ScraperCLI') -> None:
     Analizza la struttura di una singola pagina web e estrae informazioni OSINT di base.
     '''
     url = prompt_for_input("Inserisci l'URL della pagina da analizzare: ")
+    parsed = urlparse(url)
+    if not parsed.scheme:
+        url = "https://" + url
     if not validators.url(url):
         print(f"{Fore.RED}✗ URL non valido.")
         return
@@ -100,7 +103,7 @@ def analyze_page_structure(cli_instance: 'ScraperCLI') -> None:
         # Display formatted report (with empty save_paths)
         print(format_page_analysis_report(url, parsed_data, osint_data, save_paths))
 
-        export_choice = _export_menu()
+        export_choice = export_menu()
         if export_choice != "0":
             _export_analysis_results(cli_instance, url, parsed_data, osint_data, export_choice)
 
@@ -120,6 +123,9 @@ def start_website_crawl_with_osint(cli_instance: 'ScraperCLI') -> None:
         return
 
     url = prompt_for_input("Inserisci l'URL di partenza per il crawling OSINT: ")
+    parsed = urlparse(url)
+    if not parsed.scheme:
+        url = "https://" + url
     if not url:
         print(f"{Fore.RED}✗ URL non può essere vuoto.")
         return
@@ -264,15 +270,6 @@ def _display_base_crawl_stats(stats: dict) -> None:
     print(f"  • Errori download: {stats.get('errors', 0)}")
     print(f"\nPercorso di salvataggio:")
     print(f"  • Contenuto: {stats.get('download_path', 'N/A')}")
-
-def _export_menu() -> str:
-    print("\nScegli il formato di esportazione:")
-    print("1. JSON")
-    print("2. HTML")
-    print("3. PDF")
-    print("4. Tutti")
-    print("0. Annulla")
-    return prompt_for_input("Scelta: ").strip()
 
 def _export_analysis_results(cli_instance: 'ScraperCLI', url: str, parsed_data: dict, osint_data: dict, export_choice: str, save_paths: dict = None) -> None:
     '''

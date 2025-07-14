@@ -395,8 +395,29 @@ def fetch_website_contacts(domain: str, ) -> Dict[str, List[str]]:
         "/sobre-nos",
         "/privacy-policy",
         "/terms-of-service",
-         "/impressum", # Aggiunto: comune in Europa
-         "/direttiva-cookies" # Aggiunto: comune in Italia
+         "/impressum", 
+         "/direttiva-cookies"
+         "/terms-and-conditions",
+        "/legal-notice",
+        "/faq",
+        "/help",
+        "/support",
+        "/customer-service",
+        "/customer-support",
+        "/team",
+        "/staff",
+        "/our-team",
+        "/our-staff",
+        "/team-members",
+        "/team-staff",
+        "/team-membership",
+        "/team-staff-members",
+        "/team-contacts",
+        "/team-contact",
+        "/team-contact-us",
+        "/team-contacto",
+        "/team-chi-siamo",
+        "/team-about",
     ]
 
     headers = {

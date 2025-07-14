@@ -75,7 +75,7 @@ class RobotsParser:
         Valore di ritorno: 
             bool -> True se il percorso è sensibile, False altrimenti
         '''
-        return any(pattern.search(path) for pattern in self.sensitive_patterns)
+        return any(pattern.search(path) for pattern in self.sensitive_patterns) 
 
     def parse(self, robots_content: str, base_url: str) -> RobotsData:
         '''
@@ -109,10 +109,10 @@ class RobotsParser:
             if line.startswith('allow:'):
                 path = line.split(':', 1)[1].strip()
                 full_path = urljoin(base_url, path)
-                rule = RobotsRule(path=path, allow=True, is_sensitive=self._is_sensitive_path(path))
+                rule = RobotsRule(path=path, allow=True, is_sensitive=self._is_sensitive_path(path)) 
                 data.rules.append(rule)
                 if rule.is_sensitive:
-                    data.sensitive_paths.add(path)
+                    data.sensitive_paths.add(path) 
 
             elif line.startswith('disallow:'):
                 path = line.split(':', 1)[1].strip()

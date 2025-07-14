@@ -29,7 +29,7 @@ def display_db_menu() -> str:
     print(f"{Fore.YELLOW}7.{Style.RESET_ALL} Rimuovi API Key")
     print(f"\n{Fore.YELLOW}0.{Style.RESET_ALL} Torna al menu Opzioni Generali")
 
-    return prompt_for_input("\nScelta: ")
+    return prompt_for_input("Scelta: ")
 
 def handle_db_choice(cli_instance: 'ScraperCLI', choice: str) -> None:
     '''
@@ -64,7 +64,7 @@ def _display_db_info(cli_instance: 'ScraperCLI') -> None:
         print(f"{Fore.YELLOW}2.{Style.RESET_ALL} Seleziona database specifico\n")
         print(f"{Fore.YELLOW}0.{Style.RESET_ALL} Torna al menu precedente")
         
-        choice = prompt_for_input("\nScelta: ").strip()
+        choice = prompt_for_input("Scelta: ").strip()
         
         if choice == "1":
             for db_name in ["websites", "osint"]:
@@ -125,7 +125,7 @@ def _perform_db_backup(cli_instance: 'ScraperCLI') -> None:
         print(f"{Fore.YELLOW}2.{Style.RESET_ALL} Backup database specifico\n")
         print(f"{Fore.YELLOW}0.{Style.RESET_ALL} Torna al menu precedente")
         
-        choice = prompt_for_input("\nScelta: ").strip()
+        choice = prompt_for_input("Scelta: ").strip()
         
         if choice == "1":
             print(f"\n{Fore.YELLOW}⏳ Backup di tutti i database in corso...{Style.RESET_ALL}")
@@ -182,7 +182,7 @@ def _clear_query_cache(cli_instance: 'ScraperCLI') -> None:
         print(f"{Fore.YELLOW}2.{Style.RESET_ALL} Svuota cache per database specifico")
         print(f"{Fore.YELLOW}0.{Style.RESET_ALL} Torna al menu precedente")
         
-        choice = prompt_for_input("\nScelta: ").strip()
+        choice = prompt_for_input("Scelta: ").strip()
         
         if choice == "1":
             try:
@@ -196,7 +196,7 @@ def _clear_query_cache(cli_instance: 'ScraperCLI') -> None:
             print(f"\n{Fore.CYAN}Database disponibili:{Style.RESET_ALL}")
             print("1. websites")
             print("2. osint")
-            db_choice = prompt_for_input("\nScelta (0 per annullare): ").strip()
+            db_choice = prompt_for_input("Scelta (0 per annullare): ").strip()
             
             if db_choice == "1":
                 db_name = "websites"
@@ -228,7 +228,7 @@ def _clear_specific_table(cli_instance: 'ScraperCLI') -> None:
         print(f"{Fore.YELLOW}3.{Style.RESET_ALL} Svuota una tabella specifica")
         print(f"{Fore.YELLOW}0.{Style.RESET_ALL} Torna al menu precedente")
         
-        choice = prompt_for_input("\nScelta: ").strip()
+        choice = prompt_for_input("Scelta: ").strip()
         
         if choice == "1":
             print(f"{Fore.RED}⚠️ ATTENZIONE: Stai per eliminare TUTTI i dati da TUTTI i database!{Style.RESET_ALL}")
@@ -273,7 +273,7 @@ def _clear_specific_table(cli_instance: 'ScraperCLI') -> None:
             print(f"\n{Fore.CYAN}Database disponibili:{Style.RESET_ALL}")
             print("1. websites")
             print("2. osint")
-            db_choice = prompt_for_input("\nScelta (0 per annullare): ").strip()
+            db_choice = prompt_for_input("Scelta (0 per annullare): ").strip()
             
             if db_choice == "1":
                 db_name = "websites"
@@ -321,7 +321,7 @@ def _clear_specific_table(cli_instance: 'ScraperCLI') -> None:
             print(f"\n{Fore.CYAN}Database disponibili:{Style.RESET_ALL}")
             print("1. websites")
             print("2. osint")
-            db_choice = prompt_for_input("\nScelta (0 per annullare): ").strip()
+            db_choice = prompt_for_input("Scelta (0 per annullare): ").strip()
             
             if db_choice == "1":
                 db_name = "websites"

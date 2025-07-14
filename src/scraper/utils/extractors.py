@@ -17,25 +17,34 @@ def extract_emails(text: str) -> set:
     Valore di ritorno:
         set -> Un set contenente gli indirizzi email unici e validi trovati
     '''
-    email_pattern = r'\b[A-Za-z0-9][A-Za-z0-9._%+-]{1,64}@(?:[A-Za-z0-9-]{1,63}\.){1,8}[A-Za-z]{2,63}\b'
-
+    email_pattern = r'\b[A-Za-z0-9][A-Za-z0-9._%+-]{1,64}@(?:[A-Za-z0-9-]{1,63}\.){1,8}[A-Za-z]{2,63}\b' 
+    
+    '''
+    Pattern regex per identificare indirizzi email:
+    - \b[A-Za-z0-9][A-Za-z0-9._%+-]{1,64} - Inizia con un carattere alfanumerico seguito da uno o più caratteri alfanumerici, punti, trattini o underscore
+    - @ - Segue il simbolo @
+    - (?:[A-Za-z0-9-]{1,63}\.){1,8} - Segue uno o più domini, ciascuno composto da 1 a 63 caratteri alfanumerici o trattini, seguito da un punto
+    - [A-Za-z]{2,63} - Termina con un dominio di primo livello di 2 a 63 caratteri alfanumerici
+    - \b - Assicura che l'email sia delimitata da spazi o altri caratteri non alfanumerici
+    - Il pattern è progettato per essere flessibile e catturare la maggior parte degli indirizzi email validi, POTREBBE INCLUDERE FALSI POSITIVI!
+    '''
     excluded_domains = [
         'example.com', 'domain.com', 'yoursite.com', 'yourdomain.com',
-        'example.org', 'email.com', 'test.com', 'sample.com'
-    ]
+        'example.org', 'email.com', 'test.com', 'sample.com' 
+    ] # Domini comuni di esempio o generici da escludere
 
     excluded_patterns = [
-        r'^[0-9a-f]{32}@',
-        r'^[0-9a-f]{8}[0-9a-f]{4}[0-9a-f]{4}[0-9a-f]{4}[0-9a-f]{12}@',
+        r'^[0-9a-f]{32}@', # MD5 hash pattern
+        r'^[0-9a-f]{8}[0-9a-f]{4}[0-9a-f]{4}[0-9a-f]{4}[0-9a-f]{12}@', # UUID pattern
     ]
 
     excluded_extensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.css', '.js', '.pdf', '.doc', '.mp3', '.mp4']
 
     emails = set()
-    for e in re.findall(email_pattern, text):
+    for e in re.findall(email_pattern, text): # trova tutte le regex nel text 
         e_lower = e.lower()
 
-        if any(ext in e_lower for ext in excluded_extensions):
+        if any(ext in e_lower for ext in excluded_extensions): 
             continue
 
         should_skip = False
@@ -47,15 +56,15 @@ def extract_emails(text: str) -> set:
         if should_skip:
             continue
 
-        domain_part = e_lower.split('@')[1]
-        if any(domain_part == excl_domain for excl_domain in excluded_domains):
+        domain_part = e_lower.split('@')[1] # Ottieni la parte del dominio dell'email
+        if any(domain_part == excl_domain for excl_domain in excluded_domains): 
             continue
 
-        local_part = e_lower.split('@')[0]
+        local_part = e_lower.split('@')[0] # Ottieni la parte locale dell'email
         if len(set(local_part)) <= 2 and len(local_part) > 4:
             continue
 
-        emails.add(e_lower)
+        emails.add(e_lower) # aggiunge l'email al set se supera i controlli
 
     return emails
 
@@ -75,8 +84,8 @@ def filter_emails(emails: Set[str], domain: str, logger: logging.Logger, keep_se
         set -> Un set contenente gli indirizzi email filtrati
     '''
 
-    filtered_emails: Set[str] = set()
-    original_count = len(emails)
+    filtered_emails: Set[str] = set() # Inizializza un set per le email filtrate
+    original_count = len(emails) # conta le email originali
     removed_count = 0
 
     # Domini di servizio noti che spesso non sono contatti utili
@@ -90,15 +99,28 @@ def filter_emails(emails: Set[str], domain: str, logger: logging.Logger, keep_se
         'secureserver.net',
         'hostmaster.sk',
         'nic.it',
-        # Aggiungi altri domini di servizio o proxy noti qui
+        # Aggiungere altri domini di servizio o proxy noti qui
     }
 
     # Pattern regex per identificare local part che sembrano ID univoci o hash
     uuid_pattern = re.compile(r'^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$', re.IGNORECASE)
     long_hex_pattern = re.compile(r'^[0-9a-f]{12,64}$', re.IGNORECASE)
 
+    '''
+    Pattern regex per identificare local part che sembrano UUID o lunghe stringhe esadecimali:
+    - ^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$:
+        - Inizia con 8 caratteri esadecimali, seguiti da un trattino opzionale
+        - Poi 4 caratteri esadecimali, un altro trattino opzionale
+        - Poi 4 caratteri esadecimali, un altro trattino opzionale
+        - Poi 4 caratteri esadecimali, un altro trattino opzionale
+        - Infine 12 caratteri esadecimali
+    - ^[0-9a-f]{12,64}$:
+        - Inizia con 12 a 64 caratteri esadecimali, senza trattini
+    Questi pattern sono progettati per catturare local part che sembrano UUID o hash
+    '''
+    
     # Termini comuni nella local part che indicano un contatto legittimo
-    meaningful_terms = {'info', 'contact', 'support', 'hello', 'sales', 'admin', 'contatti', 'assistenza', 'ufficio', 'segreteria', 'privacy'}
+    meaningful_terms = {'info', 'contact', 'support', 'hello', 'sales', 'admin', 'contatti', 'assistenza', 'ufficio', 'office', 'segreteria', 'privacy', 'legal', 'team', 'staff', 'help', 'customer', 'clienti', 'richieste', 'richiesta', 'richieste generali', 'partnerships', 'marketing'}
 
     # Normalizza il dominio per confronto
     normalized_domain = domain.lower()
@@ -256,9 +278,36 @@ def filter_phone_numbers(phone_numbers: set) -> set:
         r'^(19|20)\d{2}\d{4}$'
     ]
 
+    ''' 
+    Pattern regex per identificare date in formato:
+    - ^20\d{6}$: Anno 20xx seguito da 6 cif
+    - ^\d{8}$: 8 cifre consecutive (potrebbe essere una data)
+    - ^\d{6}$: 6 cifre consecutive (potrebbe essere una data)
+    - ^20\d{2}(0[1-9]|1[0-2])(0[1-9]|[12][0-9]|3[01])$:
+        - Anno 20xx seguito da mese (01-12) e giorno (01-31)
+    - ^(0[1-9]|1[0-2])(0[1-9]|[12][0-9]|3[01])20\d{2}$:
+        - Mese (01-12) e giorno (01-31) seguito da anno 20xx
+    - ^(19|20)\d{2}\d{4}$:
+        - Anno 19xx o 20xx seguito da 4 cifre (potrebbe essere un numero di telefono o un codice)
+    Questi pattern sono progettati per catturare date in vari formati comuni, ma potrebbero includere falsi positivi.
+    '''
     ip_pattern = r'^\d{1,3}(\.\d{1,3}){3}$'
 
+    '''
+    Pattern regex per identificare indirizzi IP:
+    - ^\d{1,3}(\.\d{1,3}){3}$:
+        - Inizia con 1-3 cifre, seguite da un punto e altre 1-3 cifre, ripetuto 3 volte
+        - Cattura indirizzi IP in formato IPv4, ma potrebbe includere falsi positivi
+    '''
     sequential_pattern = r'^(?:0(?=1)|1(?=2)|2(?=3)|3(?=4)|4(?=5)|5(?=6)|6(?=7)|7(?=8)|8(?=9)){5,}\d$'
+    
+    '''
+    Pattern regex per identificare sequenze numeriche:
+    - ^(?:0(?=1)|1(?=2)|2(?=3)|3(?=4)|4(?=5)|5(?=6)|6(?=7)|7(?=8)|8(?=9)){5,}\d$:
+        - Cattura sequenze numeriche in cui ogni cifra è seguita dalla successiva
+        - Ad esempio, "0123456789" o "1234567890"
+        - Il pattern è progettto per identificare sequenze numeriche lunghe, ma potrebbe includere falsi positivi
+    '''
 
     for phone in phone_numbers:
         # Gestione del doppio + all'inizio

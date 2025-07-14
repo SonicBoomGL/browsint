@@ -31,7 +31,7 @@ def display_download_menu() -> str:
     print(f"{Fore.YELLOW}3.{Style.RESET_ALL} Crawl e download struttura sito web\n")
     print(f"{Fore.YELLOW}0.{Style.RESET_ALL} Torna al menu principale")
 
-    return prompt_for_input("\nScelta: ")
+    return prompt_for_input("Scelta: ")
 
 def handle_download_choice(cli_instance: 'ScraperCLI', choice: str) -> None:
     '''
@@ -57,6 +57,11 @@ def download_single_url(cli_instance: 'ScraperCLI') -> None:
         print(f"{Fore.RED}URL non può essere vuoto.")
         return
 
+    # Normalizza l'URL: aggiungi https:// se manca lo schema
+    parsed = urlparse(url)
+    if not parsed.scheme:
+        url = "https://" + url
+
     print(f"{Fore.YELLOW}⏳ Scaricamento in corso per {url}...")
     try:
         content = cli_instance.web_fetcher.fetch(url)
@@ -70,7 +75,10 @@ def download_single_url(cli_instance: 'ScraperCLI') -> None:
                 default_filename = f"{domain.replace('.', '_')}_{timestamp}.html" # + nome file
 
                 filename_input = prompt_for_input(f"Nome file (default: {default_filename}): ")
-                filename = filename_input or default_filename
+                if filename_input:
+                    filename = filename_input if filename_input.lower().endswith('.html') else filename_input + '.html'
+                else:
+                    filename = default_filename
                 filepath = cli_instance.dirs["sites"] / filename
                 try:
                     with open(filepath, "w", encoding="utf-8") as f:
@@ -112,6 +120,9 @@ def download_multiple_urls(cli_instance: 'ScraperCLI') -> None:
         success_count = 0
 
         for i, url in enumerate(urls, 1): # enumerate inizia da 1 e conta gli URL
+            parsed = urlparse(url)
+            if not parsed.scheme:
+                url = "https://" + url
             print(f"{Fore.CYAN}[{i}/{len(urls)}] Scaricando: {url}...{Style.RESET_ALL}")
             try:
                 content = cli_instance.web_fetcher.fetch(url)
@@ -157,6 +168,9 @@ def start_website_crawl_base(cli_instance: 'ScraperCLI') -> None:
     print(f"{'═' * 40}{Style.RESET_ALL}\n")
 
     url = cli_instance._get_validated_url_input("Inserisci l'URL di partenza per il crawling (es. https://example.com): ") 
+    parsed = urlparse(url)
+    if not parsed.scheme:
+        url = "https://" + url
     if not url:
         return
 
@@ -219,7 +233,7 @@ def _display_base_crawl_stats(stats: dict) -> None:
     print(f"\n{Fore.YELLOW}✓ Crawling completato{Style.RESET_ALL}")
     print(f"\nStatistiche di base:")
     print(f"  • URLs visitati: {stats.get('urls_visited', 0)}")
-    print(f"  • Pagine salvate (HTML): {stats.get('pages_saved', 0)}") # Testo aggiornato
+    print(f"  • Pagine salvate (HTML): {stats.get('pages_saved', 0)}") 
     print(f"  • Errori download: {stats.get('errors', 0)}")
     
     print(f"\nPercorsi di salvataggio:")

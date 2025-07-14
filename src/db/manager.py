@@ -49,8 +49,8 @@ class DatabaseManager:
             DatabaseManager -> L'istanza unica del DatabaseManager
         '''
         if cls._instance is None:
-            cls._instance = cls(db_path) # Se non esiste un'istanza del DatabaseManager, ne crea una nuova
-        elif db_path and cls._instance.databases["websites"] != db_path: # Se esiste già e il percorso è diverso, lo aggiorna
+            cls._instance = cls(db_path)
+        elif db_path and cls._instance.databases["websites"] != db_path:
             cls._instance.databases["websites"] = db_path  
             logger.info(f"Percorso database aggiornato a {db_path}")
         return cls._instance 
@@ -78,9 +78,8 @@ class DatabaseManager:
         if db_path:
             self.databases["websites"] = db_path
 
-        self.initialized_tables: set[str] = set() # Insieme delle tabelle già inizializzate
-
-        self.connections: dict[str, sqlite3.Connection | None] = {} # Dizionario delle conn del db
+        self.initialized_tables: set[str] = set()
+        self.connections: dict[str, sqlite3.Connection | None] = {}
 
         logger.info(f"DatabaseManager inizializzato con database: {', '.join(self.databases.keys())}")
 
@@ -106,14 +105,11 @@ class DatabaseManager:
             logger.debug(f"Connessione a {db_name} in {db_path}")
 
             connection = sqlite3.connect(
-                db_path, timeout=10.0, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES # Parametri di connessione
+                db_path, timeout=10.0, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES
             )
-
-            connection.execute("PRAGMA journal_mode=WAL") # journaling : WAL, serve a proteggere i dati in caso di crash
-            connection.execute("PRAGMA foreign_keys=ON") # foreign keys, serve a proteggere i dati in caso di crash
-
+            connection.execute("PRAGMA journal_mode=WAL")
+            connection.execute("PRAGMA foreign_keys=ON")
             connection.row_factory = sqlite3.Row
-
             self.connections[db_name] = connection 
             logger.info(f"Connessione a {db_name} completata")
             return True
@@ -132,10 +128,10 @@ class DatabaseManager:
         Valore di ritorno:
             None -> La funzione non restituisce un valore
         '''
-        db_names = [db_name] if db_name else list(self.connections.keys()) # ottiene il nome del db da chiudere o tutti
+        db_names = [db_name] if db_name else list(self.connections.keys())
 
         for name in db_names:
-            if name in self.connections and self.connections[name]: # Se il db esiste e la conn è attiva, la chiude
+            if name in self.connections and self.connections[name]:
                 self.connections[name].close()
                 self.connections[name] = None
                 logger.debug(f"Connessione a {name} chiusa")
@@ -154,17 +150,17 @@ class DatabaseManager:
         if not self.connect(db_name):
             raise ConnectionError(f"Impossibile connettersi al database: {db_name}")
 
-        connection = self.connections[db_name] # ottiene la conn del db
+        connection = self.connections[db_name]
         if connection is None:
             raise ConnectionError(f"Connessione a {db_name} non valida")
 
-        cursor = connection.cursor() # crea un cursore per eseguire query
+        cursor = connection.cursor()
         try:
-            yield cursor # restituisce il cursore per eseguire query
-            connection.commit() # commita le modifiche
+            yield cursor
+            connection.commit()
             logger.debug(f"Transazione completata su {db_name}")
         except Exception as e:
-            connection.rollback() # annulla le modifiche
+            connection.rollback()
             logger.error(f"Transazione annullata su {db_name}: {str(e)}")
             raise
 
@@ -234,33 +230,33 @@ class DatabaseManager:
         if not self.connect(db_name):
             return None
 
-        connection = self.connections[db_name] # ottiene la conn del db
+        connection = self.connections[db_name]
         if connection is None:
             return None
 
-        original_factory = connection.row_factory # ottiene il factory (ovvero come vengono restituiti i dati) della conn
+        original_factory = connection.row_factory
 
         try:
-            connection.row_factory = sqlite3.Row # imposta il factory (ovvero come vengono restituiti i dati) della conn
+            connection.row_factory = sqlite3.Row
 
-            cursor = connection.cursor() # crea un cursore per eseguire query
-            cursor.execute(query, params or ()) # esegue la query
+            cursor = connection.cursor() # Creo un cursore per eseguire la query
+            cursor.execute(query, params or ()) # Eseguo la query con i parametri forniti
 
-            if query.strip().upper().startswith("SELECT"): # se la query è una SELECT, restituisce i risultati come lista di dizionari
-                results = cursor.fetchall()
-                return [dict(row) for row in results] # restituisce i risultati come lista di dizionari
+            if query.strip().upper().startswith("SELECT"): # Se query = SELECT
+                results = cursor.fetchall() # Recupero tutti i risultati
+                return [dict(row) for row in results] # formato: lista di dizionari
             else:
-                connection.commit() # commita le modifiche
-                return [{"rowcount": cursor.rowcount}] # restituisce il numero di righe modificate
+                connection.commit() # commit serve a salvare le modifiche per query che non sono SELECT
+                return [{"rowcount": cursor.rowcount}] # formato: dizionario con il numero di righe interessate
 
         except sqlite3.Error as error:
             logger.error(f"Errore esecuzione query: {error}")
-            if not query.strip().upper().startswith("SELECT"): # se la query non è una SELECT, annulla le modifiche
-                connection.rollback() 
+            if not query.strip().upper().startswith("SELECT"): # se non è una SELECT, faccio rollback
+                connection.rollback()  # rollback = annulla le modifiche
             return None
         finally:
             if connection:
-                connection.row_factory = original_factory # ripristina il factory (ovvero come vengono restituiti i dati) della conn
+                connection.row_factory = original_factory # Ripristino il factory originale
 
     def fetch_one(
         self, query: str, params: tuple[Any, ...] | None = None, db_name: str = "websites"
@@ -310,19 +306,19 @@ class DatabaseManager:
         Valore di ritorno:
             pd.DataFrame -> Un DataFrame pandas contenente i risultati della query, o un DataFrame vuoto in caso di errore
         '''
-        if not self.connect(db_name): # se non si riesce a connettere al db, restituisce un DataFrame vuoto
-            return pd.DataFrame() 
+        if not self.connect(db_name):
+            return pd.DataFrame()  
 
-        connection = self.connections[db_name] # ottiene la conn del db
-        if connection is None: # se la conn non è valida, restituisce un DataFrame vuoto
+        connection = self.connections[db_name]
+        if connection is None:
             return pd.DataFrame()
 
         try:
-            return pd.read_sql_query(query, connection, params=params) # restituisce i risultati della query come DataFrame
+            return pd.read_sql_query(query, connection, params=params) # Esegue query e carica in DataFrame
 
         except Exception as e:
             logger.error(f"Errore conversione a DataFrame: {e}")
-            return pd.DataFrame() # restituisce un DataFrame vuoto in caso di errore
+            return pd.DataFrame()
 
     def dataframe_to_table(
         self, df: pd.DataFrame, table_name: str, db_name: str = "websites", if_exists: str = "append"
@@ -351,9 +347,9 @@ class DatabaseManager:
             return False
 
         try:
-            df.to_sql(table_name, connection, if_exists=if_exists, index=False) # salva il DataFrame nella tabella 
+            df.to_sql(table_name, connection, if_exists=if_exists, index=False) # Salva dataframe in tabella
             logger.info(f"DataFrame ({len(df)} righe) salvato in {table_name}") 
-            return True
+            return True # operazione riuscita
 
         except Exception as e:
             logger.error(f"Errore salvataggio DataFrame: {e}")
@@ -370,8 +366,8 @@ class DatabaseManager:
         Valore di ritorno:
             bool -> True se la tabella esiste, False altrimenti
         '''
-        query = "SELECT name FROM sqlite_master WHERE type='table' AND name=?;" # query per verificare se la tabella esiste
-        result = self.fetch_one(query, (table_name,), db_name) # esegue la query e restituisce la prima riga come dizionario
+        query = "SELECT name FROM sqlite_master WHERE type='table' AND name=?;" # query per verificare l'esistenza della tabella
+        result = self.fetch_one(query, (table_name,), db_name) # eseguo la query con il nome della tabella come parametro
         return result is not None
 
     def get_tables(self, db_name: str = "websites") -> list[str]:
@@ -384,23 +380,23 @@ class DatabaseManager:
         Valore di ritorno:
             list[str] -> Una lista contenente i nomi delle tabelle, o una lista vuota in caso di errore
         '''
-        results = self.execute_query("SELECT name FROM sqlite_master WHERE type='table';", None, db_name)
+        results = self.execute_query("SELECT name FROM sqlite_master WHERE type='table';", None, db_name) # query per ottenere i nomi delle tabelle
         if results:
-            return [row["name"] for row in results] # restituisce i nomi delle tabelle come lista
+            return [row["name"] for row in results] # formato: lista di nomi delle tabelle
         return []
 
     def get_database_size(self, db_name: str) -> float:
         """Restituisce la dimensione del database in MB."""
         try:
             if db_name not in self.databases: 
-                raise ValueError(f"Database '{db_name}' non trovato") 
+                raise ValueError(f"Database '{db_name}' non trovato")  
             
-            file_path = Path(self.databases[db_name]) # ottiene il percorso del db
+            file_path = Path(self.databases[db_name]) # Controllo il percorso del database
             if not file_path.exists():
                 logger.warning(f"File database {db_name} non trovato in {file_path}")
                 return 0.0 
                 
-            size_bytes = file_path.stat().st_size # ottiene la dimensione del db in byte
+            size_bytes = file_path.stat().st_size # Ottengo dimensione DB in byte
             return size_bytes / (1024 * 1024)  # Converti in MB
             
         except Exception as e:
@@ -413,13 +409,13 @@ class DatabaseManager:
             if not self.connect(db_name):
                 return []
                 
-            with self.transaction(db_name) as cursor: # esegue la query e restituisce i nomi delle tabelle come lista
+            with self.transaction(db_name) as cursor: # Uso context manager (ovvero un blocco try-except "transcation") per gestire la transazione
                 cursor.execute("""
                     SELECT name FROM sqlite_master 
                     WHERE type='table' AND name NOT LIKE 'sqlite_%'
                     ORDER BY name
-                """)
-                return [row['name'] for row in cursor.fetchall()] # restituisce i nomi delle tabelle come lista
+                """) # query per ottenere i nomi delle tabelle 
+                return [row['name'] for row in cursor.fetchall()] # formato: lista di nomi delle tabelle
                 
         except Exception as e:
             logger.error(f"Errore recupero tabelle da {db_name}: {e}")
@@ -437,18 +433,18 @@ class DatabaseManager:
                 
             # Crea directory backup
             backup_dir = source_path.parent / "backups"
-            backup_dir.mkdir(parents=True, exist_ok=True) # crea la directory dei backup
+            backup_dir.mkdir(parents=True, exist_ok=True)
             
             # Nome file backup con timestamp
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S") # ottiene il timestamp
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             backup_path = backup_dir / f"{source_path.stem}_{timestamp}.db"
             
             # Esegui backup
-            if db_name in self.connections and self.connections[db_name]: # se il db esiste e la conn è attiva, commita le modifiche
+            if db_name in self.connections and self.connections[db_name]:
                 self.connections[db_name].commit()  # Assicura stato consistente
             
-            import shutil # importa il modulo shutil per copiare i file
-            shutil.copy2(source_path, backup_path) # copia il db nella directory dei backup
+            import shutil
+            shutil.copy2(source_path, backup_path) # shutil è una libreria per operazioni di file system come il backup di un file
             
             logger.info(f"Backup di {db_name} completato: {backup_path}")
             return True, str(backup_path)
@@ -463,9 +459,9 @@ class DatabaseManager:
             if not self.connect(db_name):
                 return False
                 
-            with self.transaction(db_name) as cursor:
-                cursor.execute(f"DELETE FROM {table_name}") # esegue la query per svuotare la tabella
-                logger.info(f"Tabella {table_name} svuotata in {db_name}")
+            with self.transaction(db_name) as cursor: # tramite il context manager transaction, gestisco la transazione
+                cursor.execute(f"DELETE FROM {table_name}") # Eseguo la query per svuotare la tabella
+                logger.info(f"Tabella {table_name} svuotata in {db_name}") 
                 return True
                 
         except Exception as e:
@@ -476,12 +472,12 @@ class DatabaseManager:
         """Svuota tutte le tabelle nel database specificato."""
         cleared_tables = []
         try:
-            tables = self.get_all_table_names(db_name) # ottiene i nomi delle tabelle
+            tables = self.get_all_table_names(db_name) # prendo ogni nome di tabella
             
-            with self.transaction(db_name) as cursor: # esegue la query e restituisce i nomi delle tabelle come lista
+            with self.transaction(db_name) as cursor: 
                 for table in tables:
-                    cursor.execute(f"DELETE FROM {table}") # esegue la query per svuotare la tabella
-                    cleared_tables.append(table)
+                    cursor.execute(f"DELETE FROM {table}") # cancello i dati da ogni tabella
+                    cleared_tables.append(table) # aggiungo il nome della tabella alla lista delle svuotate
                     
             logger.info(f"Tutte le tabelle svuotate in {db_name}")
             return True, cleared_tables
@@ -493,8 +489,8 @@ class DatabaseManager:
     def clear_cache(self) -> None:
         """Svuota la cache delle query."""
         try:
-            if hasattr(self, 'cached_query'): # se la cache esiste, la svuota
-                self.cached_query.cache_clear() 
+            if hasattr(self, 'cached_query'): # Controllo se l'istanza ha l'attributo cached_query
+                self.cached_query.cache_clear()  # Svuoto la cache della funzione cached_query
                 logger.info("Cache query svuotata")
         except Exception as e:
             logger.error(f"Errore pulizia cache: {e}")
@@ -512,7 +508,7 @@ class DatabaseManager:
         Valore di ritorno:
             list[dict[str, Any]] -> Una lista di dizionari rappresentanti i risultati della query
         '''
-        results = self.execute_query(query, None, db_name) # esegue la query e restituisce i risultati come lista di dizionari
+        results = self.execute_query(query, None, db_name) # Eseguo la query e memorizzo i risultati (serve a ottimizzare le query ripetute)
         return results if results else []
 
     def __del__(self) -> None:
@@ -524,19 +520,5 @@ class DatabaseManager:
         Valore di ritorno:
             None -> La funzione non restituisce un valore
         '''
-        self.disconnect()
+        self.disconnect() # Chiudo tutte le connessioni attive al momento della distruzione dell'istanza
 
-
-# Esempio di utilizzo
-if __name__ == "__main__":
-    db = DatabaseManager.get_instance()
-
-    db.init_schema()
-
-    users = db.execute_query("SELECT * FROM users LIMIT 5;", db_name="websites")
-    if users:
-        print(f"Trovati {len(users)} utenti")
-    else:
-        print("Nessun utente trovato o errore query")
-
-    db.disconnect()

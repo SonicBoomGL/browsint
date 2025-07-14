@@ -33,7 +33,7 @@ logger = logging.getLogger("osint.extractor")
 class OSINTExtractor:
     '''
     Funzione: OSINTExtractor
-    Classe responsabile per l'estrazione e l'elaborazione dei dati OSINT da varie fonti.
+    Orchestratore responsabile per l'estrazione e l'elaborazione dei dati OSINT da varie fonti.
     Parametri formali:
         self -> Riferimento all'istanza della classe
         dict[str, str] | None api_keys -> Dizionario contenente le API keys per i vari servizi OSINT
@@ -57,29 +57,31 @@ class OSINTExtractor:
        '''
        Funzione: entity
        Coordina l'estrazione dei dati OSINT per una specifica entità (dominio, email, username) da tutte le fonti configurate.
-       ... (documentazione esistente) ...
+       Parametri formali:
+           self -> Riferimento all'istanza della classe
+           str target -> L'identificativo dell'entità da analizzare
+           str entity_type -> Il tipo di entità (dominio, email, username)
+       Valore di ritorno:
+           dict[str, Any] -> I risultati dell'analisi OSINT per l'entità specificata
        '''
        self.logger.info(f"Profiling {entity_type}: {target}")
-       entity_id = self._get_or_create_entity(target, entity_type)
+       entity_id = self._get_or_create_entity(target, entity_type) # recupera o crea l'entità nel database 
        self.logger.debug(f"Entity ID for {target} ({entity_type}): {entity_id}")
 
        data_to_save = {}
-       source_type_for_saving = entity_type
+       source_type_for_saving = entity_type 
 
        if entity_type == "domain":
            self.logger.debug(f"Processing domain data for {target}")
-           # MODIFICA QUI: Passa api_keys e logger
-           data_to_save = fetch_domain_osint(target, api_keys=self.api_keys, logger=self.logger)
+           data_to_save = fetch_domain_osint(target, api_keys=self.api_keys, logger=self.logger) # scansione dominio
            source_type_for_saving = "domain"
        elif entity_type == "email":
            self.logger.debug(f"Processing email data for {target}")
-           # MODIFICA QUI: Passa api_keys e logger
-           data_to_save = fetch_email_osint(target, api_keys=self.api_keys)
+           data_to_save = fetch_email_osint(target, api_keys=self.api_keys) # scansione email
            source_type_for_saving = "email"
        elif entity_type == "username":
            self.logger.debug(f"Processing username social scan for {target}")
-           # MODIFICA QUI: Passa logger
-           data_to_save = fetch_social_osint(target, logger=self.logger) # fetch_social_osint richiede solo logger
+           data_to_save = fetch_social_osint(target, logger=self.logger) # scansione username sui social
            source_type_for_saving = "social"
        else:
            self.logger.error(f"Unknown entity type for entity: {entity_type}")
@@ -89,13 +91,13 @@ class OSINTExtractor:
 
        if data_to_save:
             try:
-               self._save_osint_profile(entity_id, source_type_for_saving, data_to_save)
+               self._save_osint_profile(entity_id, source_type_for_saving, data_to_save) # salvataggio su db
 
             except Exception as e:
                  self.logger.error(f"Error during data saving or contact extraction for entity {entity_id}: {e}", exc_info=True)
 
 
-       profile_result = self._build_full_profile(entity_id)
+       profile_result = self._build_full_profile(entity_id) # costruzione profilo completo 
        self.logger.debug(f"Result of _build_full_profile for entity {entity_id}: {profile_result}")
        return profile_result
     
@@ -111,44 +113,46 @@ class OSINTExtractor:
         Valore di ritorno:
             int -> L'ID univoco dell'entità nel database
         '''
-        db_entity_type = "company" if entity_type == "domain" else "person"
-        domain_value = identifier if entity_type == "domain" else None
+        db_entity_type = "company" if entity_type == "domain" else "person" # Associa "domain" a "company" e gli altri tipi a "person"
+        domain_value = identifier if entity_type == "domain" else None # Se l'entità è un dominio, salva il dominio, altrimenti None
 
-        with self.db.transaction("osint") as cursor:
+        with self.db.transaction("osint") as cursor: # Inizia una transazione per garantire l'atomicità (ovvero tutte le operazioni devono riuscire o fallire insieme)
             cursor.execute(
                 """
                 INSERT OR IGNORE INTO entities (type, name, domain)
                 VALUES (?, ?, ?)
             """,
-                (db_entity_type, identifier, domain_value),
+                (db_entity_type, identifier, domain_value), # Inserisce il tipo, il nome e il dominio (se applicabile) dell'entità
             )
 
-            entity_id: Optional[int] = None
-            if cursor.rowcount > 0:
-                entity_id = cursor.lastrowid
+            entity_id: Optional[int] = None # Inizializza entity_id come None per gestire il caso in cui l'inserimento fallisca
+            if cursor.rowcount > 0: # controlla se l'inserimento è riuscito
+                entity_id = cursor.lastrowid # associa l'ID dell'ultima riga inserita a entity_id
                 if entity_id is None:
                     self.logger.error(f"CRITICAL: rowcount > 0 but lastrowid is None for entity '{identifier}'.")
                     raise ValueError(f"Failed to get lastrowid for new entity '{identifier}'")
                 self.logger.debug(f"Created new entity: ID {entity_id}, Name '{identifier}', Type '{db_entity_type}'")
-                return cast(int, entity_id)
+                return cast(int, entity_id) # Restituisce l'ID dell'entità appena creata (cast serve a specificare che entity_id è di tipo int)
             else:
                 self.logger.debug(f"Entity '{identifier}' (type: {db_entity_type}) likely already exists. Fetching its ID.")
                 if db_entity_type == "company" and domain_value:
-                    cursor.execute("SELECT id FROM entities WHERE name=? AND type=? AND domain=?", (identifier, db_entity_type, domain_value))
-                elif db_entity_type == "person" and domain_value is None:
-                     cursor.execute("SELECT id FROM entities WHERE name=? AND type=? AND domain IS NULL", (identifier, db_entity_type))
-                else:
-                    self.logger.warning(f"Attempting generic SELECT for entity: Name '{identifier}', Type '{db_entity_type}', Domain '{domain_value}'")
-                    cursor.execute("SELECT id FROM entities WHERE name=? AND type=?", (identifier, db_entity_type))
+                    cursor.execute("SELECT id FROM entities WHERE name=? AND type=? AND domain=?", (identifier, db_entity_type, domain_value)) # Se l'entità è una company, cerca per nome e dominio
 
-                result = cursor.fetchone()
+                elif db_entity_type == "person" and domain_value is None:
+                     cursor.execute("SELECT id FROM entities WHERE name=? AND type=? AND domain IS NULL", (identifier, db_entity_type)) # Se l'entità è una person, cerca per nome e tipo, ignorando il dominio
+
+                else:
+                    self.logger.warning(f"Attempting generic SELECT for entity: Name '{identifier}', Type '{db_entity_type}', Domain '{domain_value}'") 
+                    cursor.execute("SELECT id FROM entities WHERE name=? AND type=?", (identifier, db_entity_type)) # se l'entità non è né company né person, esegue una ricerca generica
+
+                result = cursor.fetchone() # recupera prima riga del risultato della query (che corrisponde all'entità cercata)
                 if not result:
                     self.logger.error(f"CRITICAL: Entity '{identifier}' (type: {db_entity_type}) was IGNORED on insert but NOT FOUND on select. Check UNIQUE constraints and SELECT query logic.")
                     raise ValueError(f"Entity '{identifier}' exists (was ignored) but its ID could not be retrieved.")
 
-                entity_id = result['id']
+                entity_id = result['id'] # Estra l'ID dell'entità
                 self.logger.debug(f"Found existing entity: ID {entity_id}, Name '{identifier}', Type '{db_entity_type}')")
-                return cast(int, entity_id)
+                return cast(int, entity_id) # Restituisce ID 
 
     def _process_domain_data(self, target: str) -> dict[str, Any]:
         '''
@@ -389,30 +393,30 @@ class OSINTExtractor:
         '''
         self.logger.debug(f"Starting _build_full_profile for entity ID: {entity_id}")
         try:
-            entity_row = self.db.fetch_one("SELECT * FROM entities WHERE id=?", (entity_id,), "osint")
+            entity_row = self.db.fetch_one("SELECT * FROM entities WHERE id=?", (entity_id,), "osint") # recupera riga dell'entità dal database
             self.logger.debug(f"Fetched entity row for ID {entity_id}: {entity_row}")
 
             if not entity_row:
                 self.logger.warning(f"Entity with ID {entity_id} not found for profile building.")
                 return {"error": "Entity not found"}
 
-            entity = dict(entity_row)
+            entity = dict(entity_row) # converte la riga in un dizionario
             self.logger.debug(f"Entity data extracted from row: {entity}")
 
             profiles_rows = self.db.fetch_all(
                     "SELECT source, extracted_fields, raw_data, updated_at FROM osint_profiles WHERE entity_id=?", (entity_id,), "osint"
-                )
+                ) # estrae i profili associati all'entità
             profiles_data = {}
             for p_row in profiles_rows:
                 source = p_row["source"]
                 try:
-                    extracted = json.loads(p_row["extracted_fields"]) if p_row.get("extracted_fields") else {}
-                    raw = json.loads(p_row.get("raw_data")) if p_row.get("raw_data") else {}
+                    extracted = json.loads(p_row["extracted_fields"]) if p_row.get("extracted_fields") else {} # struttura i campi estratti
+                    raw = json.loads(p_row.get("raw_data")) if p_row.get("raw_data") else {} # struttura i dati grezzi
                     profiles_data[source] = {
                         "extracted": extracted,
                         "raw": raw,
                         "updated_at": p_row["updated_at"]
-                    }
+                    } # concatena i dati estratti e grezzi in un dizionario
                 except json.JSONDecodeError:
                      self.logger.error(f"Failed to decode JSON for profile source {source}, entity {entity_id}.", exc_info=True)
                      profiles_data[source] = {"error": "Failed to decode profile data", "updated_at": p_row["updated_at"], "raw": p_row.get("raw_data", "N/A")}
@@ -420,21 +424,21 @@ class OSINTExtractor:
 
             contacts_rows = self.db.fetch_all(
                 "SELECT email, phone, source, created_at FROM contacts WHERE entity_id=?", (entity_id,), "osint"
-            )
+            ) # estrae i contatti associati all'entità
             contacts_list = []
             for row in contacts_rows:
                 if row.get("email"):
                     contacts_list.append({
                         "contact_type": "email", "value": row["email"], "source": row["source"], "created_at": row["created_at"]
-                    })
+                    }) # aggiunge l'email alla lista dei contatti
                 if row.get("phone"):
                      contacts_list.append({
                         "contact_type": "phone", "value": row["phone"], "source": row["source"], "created_at": row["created_at"]
-                     })
+                     }) # aggiunge il telefono alla lista dei contatti
 
             domain_info_row = None
             if entity.get("type") == "company":
-                 domain_info_row = self.db.fetch_one("SELECT * FROM domain_info WHERE entity_id=?", (entity_id,), "osint")
+                 domain_info_row = self.db.fetch_one("SELECT * FROM domain_info WHERE entity_id=?", (entity_id,), "osint") # estrae le informazioni di dominio se l'entità è una company
 
 
             final_profile = {
@@ -442,7 +446,7 @@ class OSINTExtractor:
                 "domain_info": dict(domain_info_row) if domain_info_row else None,
                 "profiles": profiles_data,
                 "contacts": contacts_list,
-            }
+            } # costruisce il profilo finale con i dati dell'entità, le informazioni di dominio, i profili e i contatti
             self.logger.debug(f"Final profile structure for ID {entity_id} includes entity data: {final_profile.get('entity', 'N/A entity data')}")
 
 
@@ -463,20 +467,21 @@ class OSINTExtractor:
        '''
        self.logger.debug("Fetching all OSINT profiles summary.")
        with self.db.transaction("osint") as cursor:
-           cursor.execute("SELECT id, name, type, domain, created_at FROM entities ORDER BY created_at DESC")
-           entities_rows = cursor.fetchall()
+           cursor.execute("SELECT id, name, type, domain, created_at FROM entities ORDER BY created_at DESC") # recupera tutte le entità dal database
+           entities_rows = cursor.fetchall() # query per il recupero
 
+            # per ogni entità, viene creato un dizionario che contiene l'ID, il nome, il tipo e il dominio (se applicabile)
            summaries = []
-           for entity_row in entities_rows:
-               entity_dict = dict(entity_row)
+           for entity_row in entities_rows: 
+               entity_dict = dict(entity_row) 
                cursor.execute("""
                    SELECT DISTINCT source
                    FROM osint_profiles
                    WHERE entity_id = ?
-               """, (entity_dict["id"],))
-               sources_rows = cursor.fetchall()
-               entity_dict["profile_sources"] = [row["source"] for row in sources_rows]
-               summaries.append(entity_dict)
+               """, (entity_dict["id"],)) # recupera le fonti di profilo associate all'entità
+               sources_rows = cursor.fetchall() 
+               entity_dict["profile_sources"] = [row["source"] for row in sources_rows] # aggiunge le fonti di profilo al dizionario dell'entità
+               summaries.append(entity_dict) # aggiunge il sommario dell'entità alla lista dei sommari
            self.logger.debug(f"Fetched {len(summaries)} profile summaries.")
            return summaries
 
@@ -492,26 +497,26 @@ class OSINTExtractor:
         '''
         self.logger.debug(f"Attempting to retrieve full profile for identifier: '{identifier}'")
         entity_type_guess = "unknown"
-        if '.' in identifier and '@' not in identifier:
+        if '.' in identifier and '@' not in identifier: # se contiene un punto ma non una chiocciola, probabilmente è un dominio
             entity_type_guess = "domain"
         elif '@' in identifier:
-            entity_type_guess = "email"
+            entity_type_guess = "email" # se contiene una chiocciola, probabilmente è un'email
         else:
-            entity_type_guess = "username"
+            entity_type_guess = "username" # altrimenti, è un username o un identificativo generico
 
-        db_entity_type = "company" if entity_type_guess == "domain" else "person"
-
+        db_entity_type = "company" if entity_type_guess == "domain" else "person" # Associa "domain" a "company" e gli altri tipi a "person"
+ 
         entity_id_row = None
-        with self.db.transaction("osint") as cursor:
+        with self.db.transaction("osint") as cursor: # Inizia una transazione per garantire l'atomicità
             if db_entity_type == "company":
-                cursor.execute("SELECT id FROM entities WHERE name = ? AND type = 'company'", (identifier,))
+                cursor.execute("SELECT id FROM entities WHERE name = ? AND type = 'company'", (identifier,)) # cerca per nome e tipo "company"
             else:
-                cursor.execute("SELECT id FROM entities WHERE name = ? AND type = 'person'", (identifier,))
+                cursor.execute("SELECT id FROM entities WHERE name = ? AND type = 'person'", (identifier,)) # cerca per nome e tipo "person"
             entity_id_row = cursor.fetchone()
 
         if entity_id_row:
-            self.logger.debug(f"Entity found for identifier '{identifier}', ID: {entity_id_row['id']}. Building full profile.")
-            return self._build_full_profile(entity_id_row["id"])
+            self.logger.debug(f"Entity found for identifier '{identifier}', ID: {entity_id_row['id']}. Building full profile.") 
+            return self._build_full_profile(entity_id_row["id"]) # se l'entità esiste, costruisce il profilo completo
         else:
             self.logger.warning(f"No entity found in DB for identifier: '{identifier}' (guessed type: {entity_type_guess}).")
             return None
@@ -527,72 +532,8 @@ class OSINTExtractor:
             Optional[dict[str, Any]] -> Il profilo OSINT completo o None se l'entità non viene trovata
         '''
         self.logger.debug(f"Attempting to retrieve full profile for entity ID: '{entity_id}'")
-        return self._build_full_profile(entity_id)
+        return self._build_full_profile(entity_id) # chiama il metodo per costruire il profilo completo
 
-    def _extract_contact_info(self, domain: str) -> dict:
-        '''
-        Funzione: _extract_contact_info
-        Estrae informazioni di contatto (email, telefoni) dalle pagine comuni di un sito web.
-        Parametri formali:
-            self -> Riferimento all'istanza della classe
-            str domain -> Il dominio del sito da cui estrarre i contatti
-        Valore di ritorno:
-            dict -> Un dizionario contenente le liste di email e numeri di telefono trovati e filtrati
-        '''
-        self.logger.info(f"Estraendo contatti dal sito web: {domain}")
-        contacts = {"emails": set(), "phone_numbers": set()}
-
-        pages_to_check_paths = [
-            "",
-            "/contact",
-            "/contact-us",
-            "/contatti",
-            "/contacto",
-            "/about",
-            "/about-us",
-            "/chi-siamo",
-            "/sobre-nos",
-            "/privacy-policy",
-            "/terms-of-service",
-        ]
-
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-        }
-
-        for path in pages_to_check_paths:
-            urls_to_try = [f"https://{domain}{path}"]
-            if not path.startswith("http"):
-                urls_to_try.append(f"http://{domain}{path}")
-
-            for url in urls_to_try:
-                try:
-                    response = requests.get(url, headers=headers, timeout=10, verify=False, allow_redirects=True)
-                    if response.status_code == 200:
-                        page_content = response.text
-
-                        found_emails = extract_emails(page_content)
-                        for email in found_emails:
-                            contacts["emails"].add(email)
-
-                        found_phones = extract_phone_numbers(page_content)
-                        for phone in found_phones:
-                            contacts["phone_numbers"].add(phone)
-
-                        if path == "":
-                            break
-                except requests.exceptions.RequestException as e:
-                    self.logger.debug(f"Impossibile recuperare {url} per l'estrazione dei contatti: {e}")
-                    continue
-                except Exception as e:
-                    self.logger.debug(f"Errore nell'elaborazione di {url} per i contatti: {e}")
-                    continue
-
-        contacts["emails"] = filter_emails(contacts["emails"], domain)
-        contacts["phone_numbers"] = filter_phone_numbers(contacts["phone_numbers"])
-
-        return {"emails": list(contacts["emails"]), "phone_numbers": list(contacts["phone_numbers"])}
-    
     def profile_domain(self, domain: str, force_recheck: bool = False) -> dict[str, Any]:
         '''
         Avvia il processo di profilazione OSINT per un dominio web.
@@ -675,10 +616,10 @@ class OSINTExtractor:
         elif entity_type == "person":  # Email or username profile
             if "@" in target_identifier:  # Email profile
                 email_data = profile_data.get("profiles", {}).get("email", {}).get("raw", {})
-                self._display_email_profile(email_data, target_identifier, profile_data)
+                self._display_email_profile(email_data, target_identifier, profile_data) # mostra i dati associati all'email
             else:  # Username profile
                 social_data = profile_data.get("profiles", {}).get("social", {}).get("raw", {})
-                self._display_social_profile(social_data, target_identifier, profile_data)
+                self._display_social_profile(social_data, target_identifier, profile_data) # mostra i dati associati allo username
         else:
             print(f"\n{Fore.RED}Unknown profile type for {target_identifier}{Style.RESET_ALL}")
 

@@ -31,6 +31,16 @@ def validate_domain(domain: str) -> tuple[bool, str | None]:
 
         domain_pattern = r"^((?!-)[a-z0-9-]{1,63}(?<!-)\.)+[a-z]{2,63}$"
 
+        '''
+        Il pattern regex verifica che il dominio:
+        ^((?!-) - Non inizi con un trattino
+        [a-z0-9-]{1,63} - Contenga solo lettere minuscole, numeri e trattini, con una lunghezza da 1 a 63 caratteri
+        (?<!-) - Non finisca con un trattino
+        \.) - Seguito da un punto
+        [a-z]{2,63}$ - Termini con un TLD di 2 a 63 caratteri (es. .com, .org, .it)
+        Questo pattern è conforme agli standard dei nomi di dominio 
+        '''
+
         if not re.match(domain_pattern, domain):
             print(f"{Fore.RED}✗ Formato dominio non valido: '{domain}'. Usare: example.com")
             return False, None

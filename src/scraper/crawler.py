@@ -227,7 +227,7 @@ class Crawler:
                         content = json.dumps(content)  # Serialize complex types to JSON string
                     cursor.execute(
                         "INSERT OR IGNORE INTO meta_data (page_id, meta_name, meta_content) VALUES (?, ?, ?)",
-                        (page_id, name, str(content))  # Ensure content is string
+                        (page_id, name, str(content))
                     )
         except Exception as e:
             logger.error(f"Errore durante il salvataggio dei metadati per pagina ID {page_id}: {e}")
@@ -307,10 +307,8 @@ class Crawler:
             base_dir = self.current_site_dir / "documents"
         else:
             base_dir = self.current_site_dir / "other"
-
         # Create subdirectories based on URL path
         if path_components and path_components[0]:
-            # Create subdirectories for the path
             current_dir = base_dir
             for component in path_components[:-1]:
                 current_dir = current_dir / component

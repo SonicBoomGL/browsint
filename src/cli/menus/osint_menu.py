@@ -3,7 +3,7 @@ OSINT menu module for the Browsint CLI application.
 """
 from colorama import Fore, Style
 from typing import TYPE_CHECKING
-from ..utils import clear_screen, prompt_for_input, json_serial
+from ..utils import clear_screen, prompt_for_input, export_menu, json_serial
 import json
 import validators
 from datetime import datetime
@@ -32,7 +32,7 @@ def display_osint_menu() -> str:
     print(f"{Fore.YELLOW}6.{Style.RESET_ALL} Esporta profilo\n")
     print(f"{Fore.YELLOW}0.{Style.RESET_ALL} Torna al menu principale")
 
-    return prompt_for_input("\nScelta: ")
+    return prompt_for_input("Scelta: ")
 
 def handle_osint_choice(cli_instance: 'ScraperCLI', choice: str) -> None:
     '''
@@ -54,18 +54,9 @@ def handle_osint_choice(cli_instance: 'ScraperCLI', choice: str) -> None:
             print(f"{Fore.RED}✗ Scelta non valida")
             input(f"{Fore.CYAN}\nPremi INVIO per continuare...{Style.RESET_ALL}") 
 
-def _export_menu() -> str:
-    print("\nScegli il formato di esportazione:")
-    print("1. JSON")
-    print("2. HTML")
-    print("3. PDF")
-    print("4. Tutti")
-    print("0. Annulla")
-    return prompt_for_input("Scelta: ").strip()
-
 def show_osint_tables(cli_instance: 'ScraperCLI', profile_data: dict):
     print(f"{Fore.CYAN}Recupero sommario profili OSINT salvati...{Style.RESET_ALL}")
-    profiles_summary = cli_instance.osint_extractor.get_all_osint_profiles_summary() # Recupera i profili OSINT dal database
+    profiles_summary = cli_instance.osint_extractor.get_all_osint_profiles_summary()
 
     if not profiles_summary:
         print(f"{Fore.YELLOW}⚠ Nessun profilo OSINT trovato nel database.{Style.RESET_ALL}")
@@ -118,10 +109,10 @@ def profile_domain_cli(cli_instance: 'ScraperCLI'):
             cli_instance.osint_extractor._display_osint_profile(profile, domain)
 
             print(f"\n{Fore.CYAN}Azioni disponibili per '{domain}':{Style.RESET_ALL}")
-            print("1. Esporta profilo completo")
+            print("1. Esporta scansione")
             print("2. Torna al menu OSINT")
 
-            choice = prompt_for_input("\nScelta: ").strip()
+            choice = prompt_for_input("Scelta: ").strip()
             if choice == "1":
                 export_osint_profile_cli(cli_instance, profile_data=profile)
         else:
@@ -143,11 +134,11 @@ def profile_email_cli(cli_instance: 'ScraperCLI'):
 
     print(f"{Fore.YELLOW}⏳ Profilazione email: {email_input}...{Style.RESET_ALL}")
 
-    profile_result = cli_instance.osint_extractor.profile_email(email_input) # Profilazione email tramite OSINT API
+    profile_result = cli_instance.osint_extractor.profile_email(email_input)
 
     if profile_result and not profile_result.get("error"):
-        cli_instance.osint_extractor._display_osint_profile(profile_result, email_input) # Mostra il profilo email
-        cli_instance.osint_extractor._offer_additional_actions(profile_result, email_input) # Offre azioni aggiuntive
+        cli_instance.osint_extractor._display_osint_profile(profile_result, email_input)
+        cli_instance.osint_extractor._offer_additional_actions(profile_result, email_input)
 
         action_choice = prompt_for_input("Seleziona un'opzione (1-2): ").strip()
         if action_choice == '1':
@@ -176,7 +167,7 @@ def profile_username_cli(cli_instance: 'ScraperCLI'):
     print(f"{Fore.YELLOW}⏳ Ricerca profili social per: {target_input}...{Style.RESET_ALL}")
 
     try:
-        profile_result = cli_instance.osint_extractor.profile_username(target_input) # Utilizzo sherlock per la ricerca profili social
+        profile_result = cli_instance.osint_extractor.profile_username(target_input)
         
         if profile_result and not profile_result.get("error"):
             # Mostra i profili trovati man mano che vengono scoperti
@@ -186,7 +177,7 @@ def profile_username_cli(cli_instance: 'ScraperCLI'):
                 if isinstance(profiles_data, dict):
                     print(f"\n{Fore.BLUE}=== Profili Trovati ==={Style.RESET_ALL}")
                     
-                    for platform, data in profiles_data.items(): # Itera sui profili trovati
+                    for platform, data in profiles_data.items():
                         if isinstance(data, dict) and data.get("exists", False): 
                             print(f"\n{Fore.CYAN}{platform}:{Style.RESET_ALL}")
                             print(f"  • URL: {data.get('url', 'N/A')}")
@@ -205,10 +196,10 @@ def profile_username_cli(cli_instance: 'ScraperCLI'):
 
             # Offri opzioni aggiuntive
             print(f"\n{Fore.CYAN}Azioni disponibili:{Style.RESET_ALL}")
-            print("1. Esporta risultati in JSON")
+            print("1. Esporta risultati")
             print("2. Torna al menu OSINT")
 
-            choice = prompt_for_input("\nScelta: ").strip()
+            choice = prompt_for_input("Scelta: ").strip()
             if choice == "1":
                 export_osint_profile_cli(cli_instance, profile_data=profile_result)
         else:
@@ -280,14 +271,17 @@ def anlyze_existing_profile_cli(cli_instance: 'ScraperCLI'):
 
     if choice_input == '1':
         if has_email:
+            # Prendo il primo contatto di tipo email
             email = next(c['value'] for c in contacts if c.get('contact_type') == 'email')
             print(f"{Fore.YELLOW}Rieseguendo scansione email per {email}...{Style.RESET_ALL}")
+            # Effettuo di nuovo il check email
             cli_instance.osint_extractor.profile_email(email, force_recheck=True)
             print(f"{Fore.YELLOW}Check email completato. Visualizza il profilo aggiornato per vedere i cambiamenti.{Style.RESET_ALL}")
         else:
             print(f"{Fore.YELLOW}⚠ Il profilo non ha un'email associata per rieseguire il check.{Style.RESET_ALL}")
     elif choice_input == '2':
         if has_username:
+            # Prendo il nome associato al profilo
             username = entity.get('name')
             print(f"{Fore.YELLOW}Rieseguendo scansione social per {username}...{Style.RESET_ALL}")
             cli_instance.osint_extractor.profile_username(username, force_recheck=True)
@@ -296,6 +290,7 @@ def anlyze_existing_profile_cli(cli_instance: 'ScraperCLI'):
             print(f"{Fore.YELLOW}⚠ Il profilo non ha un nome/username associato per rieseguire il check social.{Style.RESET_ALL}")
     elif choice_input == '3':
         if has_domain:
+            # Prendo il dominio associato al profilo
             domain = entity.get('domain')
             print(f"{Fore.YELLOW}Rieseguendo scansione sottodomini per {domain}...{Style.RESET_ALL}")
             cli_instance.osint_extractor.profile_domain(domain, force_recheck=True)
@@ -328,30 +323,32 @@ def export_osint_profile_cli(cli_instance: 'ScraperCLI', profile_data: dict = No
         osint_dir = cli_instance.dirs["osint_exports"]
         pdf_dir = cli_instance.dirs["pdf_reports"]
 
-        export_choice = _export_menu()
+        export_choice = export_menu()
         if export_choice == "0":
             print("Esportazione annullata.")
             return
 
-        exported = False
-        if export_choice in {"1", "4"}:
-            json_path = osint_dir / f"osint_profile_{target_id}_{timestamp}.json"
+        exported = False # Variabile per tenere traccia di cosa è stato esportato
+        if export_choice in {"1", "4"}: # Se la scelta è JSON o Tutti
+            json_path = osint_dir / f"osint_profile_{target_id}_{timestamp}.json" 
             with open(json_path, 'w', encoding='utf-8') as f:
-                json.dump(profile_data, f, indent=4, ensure_ascii=False, default=json_serial)
+                json.dump(profile_data, f, indent=4, ensure_ascii=False, default=json_serial) # Effettua una conversione JSON
             print(f"\n{Fore.YELLOW}✓ Profilo esportato in JSON: {json_path}{Style.RESET_ALL}")
-            exported = True
-        if export_choice in {"2", "4"}:
+            exported = True # Segna come esportato
+        
+        if export_choice in {"2", "4"}: # Se la scelta è HTML o Tutti
             html_path = osint_dir / f"osint_profile_{target_id}_{timestamp}.html"
-            profiles = profile_data.get('profiles', {})
-            data = profiles.get('domain', {}).get('raw', {})
-            domain_analyzed = profile_data.get('entity', {}).get('name', target_id)
-            target_input = profile_data.get('target_input', domain_analyzed)
+            profiles = profile_data.get('profiles', {}) # Estraggo i profili dal profilo (entita principale)
+            data = profiles.get('domain', {}).get('raw', {}) # Estraggo i dati del dominio (esempio. whois, dns, ecc..)
+            domain_analyzed = profile_data.get('entity', {}).get('name', target_id) # Prendo il nome del dom analizzato
+            target_input = profile_data.get('target_input', domain_analyzed) # Se non presente, uso in nome inserito in input
             shodan_skipped = 'shodan' not in data
-            html_report = formal_html_report_domain(data, target_input, domain_analyzed, shodan_skipped)
+            html_report = formal_html_report_domain(data, target_input, domain_analyzed, shodan_skipped) # se shodan non presente, lo gestisco
             with open(html_path, 'w', encoding='utf-8') as f:
-                f.write(html_report)
+                f.write(html_report) # scrivo report
             print(f"{Fore.YELLOW}✓ Profilo esportato in HTML: {html_path}{Style.RESET_ALL}")
             exported = True
+        
         if export_choice in {"3", "4"}:
             pdf_path = pdf_dir / f"osint_profile_{target_id}_{timestamp}.pdf"
             profiles = profile_data.get('profiles', {})
@@ -362,6 +359,7 @@ def export_osint_profile_cli(cli_instance: 'ScraperCLI', profile_data: dict = No
             create_pdf_domain_report(data, target_input, domain_analyzed, shodan_skipped, str(pdf_path))
             print(f"{Fore.YELLOW}✓ Profilo esportato in PDF: {pdf_path}{Style.RESET_ALL}")
             exported = True
+        
         if not exported:
             print(f"{Fore.YELLOW}Nessun formato selezionato per l'esportazione.{Style.RESET_ALL}")
 

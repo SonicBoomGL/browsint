@@ -8,7 +8,6 @@ from colorama import Fore, Style
 
 def json_serial(obj):
     '''
-    Funzione: json_serial
     Serializza oggetti non serializzabili di default in JSON.
     Parametri formali:
         object obj -> Oggetto da serializzare
@@ -18,7 +17,7 @@ def json_serial(obj):
     if isinstance(obj, datetime):
         return obj.isoformat()
     elif isinstance(obj, set):
-        return list(obj)  # Converte i set in liste
+        return list(obj)
     raise TypeError(f"Type {type(obj)} not serializable")
 
 def clear_screen():
@@ -32,7 +31,7 @@ def clear_screen():
 
 def prompt_for_input(prompt: str) -> str:
     '''Chiede un input all'utente con un prompt formattato.'''
-    return input(f"{Fore.CYAN}{prompt}{Style.RESET_ALL}").strip()
+    return input(f"\n{Fore.CYAN}{prompt}{Style.RESET_ALL}").strip()
 
 def confirm_action(message: str, default_yes: bool = True) -> bool:
     '''Chiede conferma all'utente per un'azione.'''
@@ -43,3 +42,13 @@ def confirm_action(message: str, default_yes: bool = True) -> bool:
         return choice.lower() in ('s', '')
     else:
         return choice.lower() == 's' 
+
+
+def export_menu() -> str:
+    print(f"{Fore.BLUE}\nScegli il formato di esportazione:{Style.RESET_ALL}")
+    print(f"{Fore.YELLOW}1.{Style.RESET_ALL} JSON")
+    print(f"{Fore.YELLOW}2.{Style.RESET_ALL} HTML")
+    print(f"{Fore.YELLOW}3.{Style.RESET_ALL} PDF")
+    print(f"{Fore.YELLOW}4.{Style.RESET_ALL} Tutti")
+    print(f"{Fore.YELLOW}0.{Style.RESET_ALL} Annulla")
+    return prompt_for_input("Scelta: ").strip()

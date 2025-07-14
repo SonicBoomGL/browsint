@@ -113,7 +113,7 @@ class ScraperCLI:
             "virustotal": os.getenv("VIRUSTOTAL_API_KEY"),
             "securitytrails": os.getenv("SECURITYTRAILS_API_KEY")
         }
-        return {k: v for k, v in api_keys.items() if v}  # Rimuove le chiavi vuote
+        return {k: v for k, v in api_keys.items() if v}
 
     def show_banner(self) -> None:
         '''
@@ -177,7 +177,7 @@ class ScraperCLI:
         print(f"{Fore.YELLOW}3.{Style.RESET_ALL} Investigazione Manuale")
         print(f"{Fore.YELLOW}4.{Style.RESET_ALL} Opzioni di sistema (DB, Cache, API Keys)\n")
         print(f"{Fore.YELLOW}0.{Style.RESET_ALL} Esci")
-        return prompt_for_input(f"{Fore.CYAN}\nScelta: {Style.RESET_ALL}")
+        return prompt_for_input(f"{Fore.CYAN}Scelta: {Style.RESET_ALL}")
 
     def _handle_main_menu_choice(self, choice: str):
         '''Gestisce la scelta dell'utente nel menu principale.'''
