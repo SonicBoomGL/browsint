@@ -128,7 +128,7 @@ class ScraperCLI:
 ██████╔╝██║  ██║╚██████╔╝╚███╔███╔╝███████║██║██║ ╚████║   ██║   
 ╚═════╝ ╚═╝  ╚═╝ ╚═════╝  ╚══╝╚══╝ ╚══════╝╚═╝╚═╝  ╚═══╝   ╚═╝   
             {Fore.YELLOW}Web Intelligence & OSINT Collection Tool{Style.RESET_ALL}
-            {Fore.BLUE}Version ALPHA{Style.RESET_ALL}
+            {Fore.BLUE}Version BETA{Style.RESET_ALL}
 
 {Fore.LIGHTBLUE_EX}{'='*60}{Style.RESET_ALL}
 
