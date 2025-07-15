@@ -126,7 +126,7 @@ def fetch_domain_osint(target: str, api_keys: Dict[str, str], logger) -> dict[st
 
 # === Funzioni per Fetching Dati Email ===
 
-def fetch_email_osint(email: str, api_keys: Dict[str, str]) -> Dict[str, Any]:
+def fetch_email_osint(email: str, api_keys: Dict[str, str], logger) -> Dict[str, Any]:
     '''
     Funzione: fetch_email_osint
     Processa l'estrazione di dati per un indirizzo email da varie fonti (Hunter.io, HIBP).
@@ -144,26 +144,45 @@ def fetch_email_osint(email: str, api_keys: Dict[str, str]) -> Dict[str, Any]:
 
     # Hunter.io lookup
     hunter_api_key = api_keys.get("hunterio")
-    hunter_data = fetch_hunterio(email, hunter_api_key)
-    if hunter_data and not hunter_data.get("error"):
-        result["hunterio"] = hunter_data
-        logger.debug(f"Hunter.io data fetched for {email}")
-    elif hunter_data and hunter_data.get("error"):
-        logger.warning(f"Hunter.io lookup failed for {email}: {hunter_data['error']}")
+    if hunter_api_key:
+        hunter_data = fetch_hunterio(email, hunter_api_key)
+        if hunter_data and not hunter_data.get("error"):
+            result["hunterio"] = hunter_data
+            logger.debug(f"Hunter.io data fetched for {email}")
+        elif hunter_data and hunter_data.get("error"):
+            logger.warning(f"Hunter.io lookup failed for {email}: {hunter_data['error']}")
+        else:
+            logger.warning(f"Hunter.io lookup for {email} returned no data.")
     else:
-        logger.warning(f"Hunter.io lookup for {email} returned no data.")
+        logger.info(f"Hunter.io API key not provided, skipping Hunter.io lookup for {email}")
+        result["hunterio"] = {"error": "API key not provided"}
 
     # HIBP lookup
     hibp_api_key = api_keys.get("hibp")
-    breaches_data = check_email_breaches(email, hibp_api_key)
-    if breaches_data:
-        result["breaches"] = breaches_data
-        if not breaches_data:
-            logger.debug(f"No breaches found for {email} on HIBP or HIBP check skipped.")
+    if hibp_api_key:
+        breaches_data = check_email_breaches(email, hibp_api_key)
+        if breaches_data:
+            result["breaches"] = breaches_data
+            if not breaches_data:
+                logger.debug(f"No breaches found for {email} on HIBP.")
+            else:
+                logger.debug(f"Found {len(breaches_data)} breaches for {email} on HIBP.")
         else:
-            logger.debug(f"Found {len(breaches_data)} breaches for {email} on HIBP.")
+            logger.debug(f"HIBP check for {email} returned no data or encountered an issue.")
     else:
-        logger.debug(f"HIBP check for {email} returned no data or encountered an issue.")
+        logger.info(f"HIBP API key not provided, skipping breach check for {email}")
+        result["breaches"] = {"error": "HIBP API key not provided"}
+        
+        # Add basic email analysis when HIBP is not available
+        domain = email.split('@')[1] if '@' in email else 'Unknown'
+        result["basic_analysis"] = {
+            "domain": domain,
+            "provider_type": "public" if domain.lower() in [
+                'gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 
+                'protonmail.com', 'icloud.com', 'aol.com', 'live.com'
+            ] else "custom",
+            "note": "Limited analysis without HIBP API key"
+        }
 
     logger.info(f"Finished email OSINT fetch for {email}. Result keys: {list(result.keys())}")
     return result

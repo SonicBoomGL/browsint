@@ -58,10 +58,13 @@ def extract_structured_fields(data: dict[str, Any], source_type: str) -> dict[st
                 structured["hunterio_disposable"] = hunter_data_content.get("disposable", False)
                 structured["hunterio_webmail"] = hunter_data_content.get("webmail", False)
 
-
             if breaches_info := data.get("breaches"):
-                structured["breach_count"] = len(breaches_info)
-                structured["breached_sites"] = [str(b.get("Name", "")) for b in breaches_info[:5]]
+                if isinstance(breaches_info, list):
+                    structured["breach_count"] = len(breaches_info)
+                    structured["breached_sites"] = [str(b.get("Name", "")) for b in breaches_info[:5]]
+                else:
+                    structured["breach_count"] = 0
+                    structured["breached_sites"] = []
 
         elif source_type == "social":
             if profiles_data := data.get("profiles"):

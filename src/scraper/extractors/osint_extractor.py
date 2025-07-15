@@ -77,7 +77,7 @@ class OSINTExtractor:
            source_type_for_saving = "domain"
        elif entity_type == "email":
            self.logger.debug(f"Processing email data for {target}")
-           data_to_save = fetch_email_osint(target, api_keys=self.api_keys) # scansione email
+           data_to_save = fetch_email_osint(target, api_keys=self.api_keys, logger=self.logger) # scansione email
            source_type_for_saving = "email"
        elif entity_type == "username":
            self.logger.debug(f"Processing username social scan for {target}")
@@ -568,9 +568,21 @@ class OSINTExtractor:
             Il profilo OSINT completo per l'email, o un dizionario di errore.
         '''
         self.logger.info(f"Starting email profiling for input: {email}")
-        if not email or "@" not in email: # Validazione basica
-             self.logger.warning(f"Basic validation failed for email input: {email}")
-             return {"error": "Invalid email format provided.", "original_input": email}
+        
+        # Enhanced validation
+        if not email or not isinstance(email, str):
+            self.logger.warning(f"Invalid email input type: {type(email)}")
+            return {"error": "Invalid email input provided.", "original_input": email}
+        
+        # Trim whitespace
+        email = email.strip()
+        
+        # Basic email validation with regex
+        import re
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        if not re.match(email_pattern, email):
+            self.logger.warning(f"Email format validation failed for: {email}")
+            return {"error": "Invalid email format provided.", "original_input": email}
 
         return self.entity(email, "email")
 
@@ -694,6 +706,34 @@ class OSINTExtractor:
                     print(f"      Date: {paste.get('Date', 'Unknown')}")
                     print(f"      Title: {paste.get('Title', 'No title')}")
         
+        # Basic email analysis when no HIBP key is available
+        elif not self.api_keys.get("hibp"):
+            print(f"\n{Fore.YELLOW}[BASIC EMAIL ANALYSIS - NO HIBP KEY]{Style.RESET_ALL}")
+            
+            # Domain analysis
+            domain = email.split('@')[1] if '@' in email else 'Unknown'
+            print(f"  Domain: {domain}")
+            
+            # Check if it's a common provider
+            common_providers = [
+                'gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 
+                'protonmail.com', 'icloud.com', 'aol.com', 'live.com'
+            ]
+            
+            if domain.lower() in common_providers:
+                print(f"  Provider Type: {Fore.CYAN}Public Email Provider{Style.RESET_ALL}")
+            else:
+                print(f"  Provider Type: {Fore.YELLOW}Custom/Corporate Domain{Style.RESET_ALL}")
+            
+            # Basic format validation
+            import re
+            if re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+                print(f"  Format: {Fore.GREEN}Valid{Style.RESET_ALL}")
+            else:
+                print(f"  Format: {Fore.RED}Invalid{Style.RESET_ALL}")
+            
+            print(f"  {Fore.YELLOW}ℹ  Add HIBP API key for breach data{Style.RESET_ALL}")
+        
         # Contact information from full profile
         contacts = full_profile.get("contacts", [])
         if contacts:
@@ -711,16 +751,24 @@ class OSINTExtractor:
                 for contact in phones[:5]:
                     print(f"    • {contact.get('value', 'N/A')} (from: {contact.get('source', 'Unknown')})")
         
-        # Summary
+        # Enhanced Summary
         print(f"\n{Fore.CYAN}[SUMMARY]{Style.RESET_ALL}")
         breach_count = len(hibp_data.get("breaches", [])) if hibp_data and not hibp_data.get("error") else 0
         paste_count = len(hibp_data.get("pastes", [])) if hibp_data and not hibp_data.get("error") else 0
         
         print(f"  Email: {email}")
-        print(f"  Verification Status: {hunter_data.get('verification', {}).get('result', 'Not verified')}")
-        print(f"  Data Breaches: {breach_count}")
-        print(f"  Paste Appearances: {paste_count}")
-        print(f"  Risk Level: {self._assess_email_risk_level(breach_count, paste_count)}")
+        
+        # Enhanced verification status
+        hunter_verification = hunter_data.get('verification', {}).get('result', 'Not verified') if hunter_data else 'Not verified'
+        print(f"  Verification Status: {hunter_verification}")
+        
+        if self.api_keys.get("hibp"):
+            print(f"  Data Breaches: {breach_count}")
+            print(f"  Paste Appearances: {paste_count}")
+            print(f"  Risk Level: {self._assess_email_risk_level(breach_count, paste_count)}")
+        else:
+            print(f"  Data Breaches: {Fore.YELLOW}HIBP API key required{Style.RESET_ALL}")
+            print(f"  Risk Level: {Fore.YELLOW}UNKNOWN (add HIBP key for assessment){Style.RESET_ALL}")
 
     def _display_social_profile(self, social_data: dict, username: str, full_profile: dict) -> None:
         '''
@@ -897,7 +945,7 @@ class OSINTExtractor:
             )
         else:
             print(f"\n{Fore.CYAN}Azioni disponibili per '{target_identifier}':{Style.RESET_ALL}")
-            print(f"1. Esporta profilo completo in JSON")
+            print(f"1. Esporta l'analisi")
             print(f"2. Torna al menu OSINT")
 
         pass
