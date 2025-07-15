@@ -511,6 +511,14 @@ class DatabaseManager:
         results = self.execute_query(query, None, db_name) # Eseguo la query e memorizzo i risultati (serve a ottimizzare le query ripetute)
         return results if results else []
 
+    def close_all_connections(self):
+        '''Alias per disconnect(), chiude tutte le connessioni.'''
+        self.disconnect()
+
+    def initialize_databases(self):
+        '''Alias per init_schema(), inizializza tutti i database.'''
+        self.init_schema()
+
     def __del__(self) -> None:
         '''
         Funzione: __del__

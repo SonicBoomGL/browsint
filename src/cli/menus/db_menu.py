@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING
 from ..utils import clear_screen, prompt_for_input
 import logging
 from pathlib import Path
+from datetime import datetime
+import shutil
 
 if TYPE_CHECKING:
     from ..scraper_cli import ScraperCLI
@@ -20,7 +22,7 @@ def display_db_menu() -> str:
     print(f"{'═' * 40}{Style.RESET_ALL}")
     print(f"{Fore.CYAN}=== Database ==={Style.RESET_ALL}")
     print(f"{Fore.YELLOW}1.{Style.RESET_ALL} Informazioni Generali Database")
-    print(f"{Fore.YELLOW}2.{Style.RESET_ALL} Esegui Backup Database")
+    print(f"{Fore.YELLOW}2.{Style.RESET_ALL} Gestione Backup Database")
     print(f"{Fore.YELLOW}3.{Style.RESET_ALL} Svuota Cache delle Query")
     print(f"{Fore.YELLOW}4.{Style.RESET_ALL} Gestione Tabelle Database")
     print(f"\n{Fore.CYAN}=== API Keys ==={Style.RESET_ALL}")
@@ -41,7 +43,7 @@ def handle_db_choice(cli_instance: 'ScraperCLI', choice: str) -> None:
     '''
     match choice:
         case "1": _display_db_info(cli_instance)
-        case "2": _perform_db_backup(cli_instance)
+        case "2": display_backup_menu(cli_instance)
         case "3": _clear_query_cache(cli_instance)
         case "4": _clear_specific_table(cli_instance)
         case "5": show_api_keys(cli_instance)
@@ -62,7 +64,7 @@ def _display_db_info(cli_instance: 'ScraperCLI') -> None:
         # Mostra le opzioni disponibili
         print(f"{Fore.YELLOW}1.{Style.RESET_ALL} Mostra info di tutti i database")
         print(f"{Fore.YELLOW}2.{Style.RESET_ALL} Seleziona database specifico\n")
-        print(f"{Fore.YELLOW}0.{Style.RESET_ALL} Torna al menu precedente")
+        print(f"\n{Fore.YELLOW}0.{Style.RESET_ALL} Torna al menu precedente")
         
         choice = prompt_for_input("Scelta: ").strip()
         
@@ -114,63 +116,6 @@ def _display_db_info(cli_instance: 'ScraperCLI') -> None:
         elif choice == "0":
             break
 
-def _perform_db_backup(cli_instance: 'ScraperCLI') -> None:
-    """Esegue il backup dei database."""
-    while True:
-        print(f"\n{Fore.BLUE}{'═' * 40}")
-        print(f"█ {Fore.WHITE}{'BACKUP DATABASE':^36}{Fore.BLUE} █")
-        print(f"{'═' * 40}{Style.RESET_ALL}")
-        
-        print(f"{Fore.YELLOW}1.{Style.RESET_ALL} Backup di tutti i database")
-        print(f"{Fore.YELLOW}2.{Style.RESET_ALL} Backup database specifico\n")
-        print(f"{Fore.YELLOW}0.{Style.RESET_ALL} Torna al menu precedente")
-        
-        choice = prompt_for_input("Scelta: ").strip()
-        
-        if choice == "1":
-            print(f"\n{Fore.YELLOW}⏳ Backup di tutti i database in corso...{Style.RESET_ALL}")
-            for db_name in ["websites", "osint"]:
-                try:
-                    success, result = cli_instance.db_manager.backup_database(db_name)
-                    if success:
-                        print(f"{Fore.YELLOW}✓ Backup {db_name} completato in: {result}{Style.RESET_ALL}")
-                        backup_size = Path(result).stat().st_size / (1024 * 1024)
-                        print(f"{Fore.CYAN}Dimensione backup: {backup_size:.2f} MB{Style.RESET_ALL}")
-                    else:
-                        print(f"{Fore.RED}✗ Backup {db_name} fallito: {result}{Style.RESET_ALL}")
-                except Exception as e:
-                    print(f"{Fore.RED}✗ Errore durante il backup di {db_name}: {e}{Style.RESET_ALL}")
-            input(f"\n{Fore.CYAN}Premi INVIO per continuare...{Style.RESET_ALL}")
-            
-        elif choice == "2":
-            print(f"\n{Fore.CYAN}Database disponibili:{Style.RESET_ALL}")
-            print("1. websites")
-            print("2. osint")
-            db_choice = prompt_for_input("\nSeleziona database (0 per annullare): ").strip()
-            
-            if db_choice == "1":
-                db_name = "websites"
-            elif db_choice == "2":
-                db_name = "osint"
-            else:
-                continue
-                
-            try:
-                print(f"\n{Fore.YELLOW}⏳ Backup database {db_name} in corso...{Style.RESET_ALL}")
-                success, result = cli_instance.db_manager.backup_database(db_name)
-                if success:
-                    print(f"{Fore.YELLOW}✓ Backup completato in: {result}{Style.RESET_ALL}")
-                    backup_size = Path(result).stat().st_size / (1024 * 1024)
-                    print(f"{Fore.CYAN}Dimensione backup: {backup_size:.2f} MB{Style.RESET_ALL}")
-                else:
-                    print(f"{Fore.RED}✗ Backup fallito: {result}{Style.RESET_ALL}")
-            except Exception as e:
-                print(f"{Fore.RED}✗ Errore durante il backup: {e}{Style.RESET_ALL}")
-            input(f"\n{Fore.CYAN}Premi INVIO per continuare...{Style.RESET_ALL}")
-            
-        elif choice == "0":
-            break
-
 def _clear_query_cache(cli_instance: 'ScraperCLI') -> None:
     """Svuota la cache delle query."""
     while True:
@@ -180,7 +125,7 @@ def _clear_query_cache(cli_instance: 'ScraperCLI') -> None:
         
         print(f"{Fore.YELLOW}1.{Style.RESET_ALL} Svuota tutta la cache")
         print(f"{Fore.YELLOW}2.{Style.RESET_ALL} Svuota cache per database specifico")
-        print(f"{Fore.YELLOW}0.{Style.RESET_ALL} Torna al menu precedente")
+        print(f"\n{Fore.YELLOW}0.{Style.RESET_ALL} Torna al menu precedente")
         
         choice = prompt_for_input("Scelta: ").strip()
         
@@ -226,7 +171,7 @@ def _clear_specific_table(cli_instance: 'ScraperCLI') -> None:
         print(f"{Fore.YELLOW}1.{Style.RESET_ALL} Svuota tutte le tabelle di tutti i database")
         print(f"{Fore.YELLOW}2.{Style.RESET_ALL} Svuota tutte le tabelle di un database")
         print(f"{Fore.YELLOW}3.{Style.RESET_ALL} Svuota una tabella specifica")
-        print(f"{Fore.YELLOW}0.{Style.RESET_ALL} Torna al menu precedente")
+        print(f"\n{Fore.YELLOW}0.{Style.RESET_ALL} Torna al menu precedente")
         
         choice = prompt_for_input("Scelta: ").strip()
         
@@ -476,3 +421,186 @@ def remove_api_key(cli_instance: 'ScraperCLI') -> None:
             print(f"{Fore.RED}✗ Scelta non valida.")
     except ValueError:
         print(f"{Fore.RED}✗ Inserire un numero valido.")
+
+def display_backup_menu(cli_instance: 'ScraperCLI'):
+    while True:
+        print(f"\n{Fore.BLUE}{'═' * 40}")
+        print(f"█ {Fore.WHITE}{'GESTIONE BACKUP':^36}{Fore.BLUE} █")
+        print(f"{'═' * 40}{Style.RESET_ALL}")
+        print(f"{Fore.YELLOW}1.{Style.RESET_ALL} Elenca backup disponibili")
+        print(f"{Fore.YELLOW}2.{Style.RESET_ALL} Crea nuovo backup")
+        print(f"{Fore.YELLOW}3.{Style.RESET_ALL} Ripristina da backup")
+        print(f"{Fore.YELLOW}4.{Style.RESET_ALL} Elimina backup")
+        print(f"\n{Fore.YELLOW}0.{Style.RESET_ALL} Torna al menu precedente")
+        choice = prompt_for_input("Scelta: ").strip()
+        if choice == "1":
+            list_available_backups()
+        elif choice == "2":
+            perform_db_backup(cli_instance)
+        elif choice == "3":
+            restore_from_backup(cli_instance)
+        elif choice == "4":
+            delete_backup()
+        elif choice == "0":
+            break
+
+def list_available_backups() -> None:
+    """Mostra i backup disponibili in modo semplice."""
+    clear_screen()
+    print(f"\n{Fore.CYAN}--- BACKUP DISPONIBILI ---{Style.RESET_ALL}")
+    backup_dir = Path("data/databases/backups")
+    if not backup_dir.exists():
+        print(f"{Fore.YELLOW}Cartella backup non trovata.{Style.RESET_ALL}")
+        prompt_for_input(f"\n{Fore.CYAN}Premi INVIO per continuare...{Style.RESET_ALL}")
+        return
+    backup_files = list(backup_dir.glob("*.db"))
+    if not backup_files:
+        print(f"{Fore.YELLOW}Nessun backup trovato.{Style.RESET_ALL}")
+        prompt_for_input(f"\n{Fore.CYAN}Premi INVIO per continuare...{Style.RESET_ALL}")
+        return
+    backup_files.sort(key=lambda x: x.stat().st_mtime, reverse=True)
+    print(f"\n{Fore.BLUE}Backup trovati:{Style.RESET_ALL}")
+    for i, backup_file in enumerate(backup_files, 1):
+        size_mb = backup_file.stat().st_size / (1024 * 1024)
+        creation_time = datetime.fromtimestamp(backup_file.stat().st_mtime)
+        date_str = creation_time.strftime('%d/%m/%Y alle %H:%M')
+        print(f"{i}. {backup_file.name}")
+        print(f"   Dimensione: {size_mb:.1f} MB")
+        print(f"   Creato: {date_str}")
+        print()
+    prompt_for_input(f"\n{Fore.CYAN}Premi INVIO per continuare...{Style.RESET_ALL}")
+
+def perform_db_backup(cli_instance: 'ScraperCLI') -> None:
+    """Crea un nuovo backup del database websites e osint."""
+    clear_screen()
+    print(f"\n{Fore.CYAN}--- CREA BACKUP ---{Style.RESET_ALL}")
+    try:
+        print(f"{Fore.CYAN}Creazione backup in corso...{Style.RESET_ALL}")
+        for db_name in ["websites", "osint"]:
+            success, backup_path = cli_instance.db_manager.backup_database(db_name)
+            if success:
+                print(f"{Fore.GREEN}✓ Backup {db_name} creato con successo!{Style.RESET_ALL}")
+                print(f"  Percorso: {backup_path}")
+                logger.info(f"Database backup created: {backup_path}")
+            else:
+                print(f"{Fore.RED}✗ Errore durante la creazione del backup di {db_name}.{Style.RESET_ALL}")
+    except Exception as e:
+        print(f"{Fore.RED}Errore imprevisto: {e}{Style.RESET_ALL}")
+        logger.error(f"Unexpected error in backup: {e}", exc_info=True)
+    prompt_for_input(f"\n{Fore.CYAN}Premi INVIO per continuare...{Style.RESET_ALL}")
+
+def restore_from_backup(cli_instance: 'ScraperCLI') -> None:
+    """Ripristina il database da un backup selezionato."""
+    clear_screen()
+    print(f"\n{Fore.CYAN}--- RIPRISTINA DATABASE ---{Style.RESET_ALL}")
+    backup_dir = Path("data/databases/backups")
+    if not backup_dir.exists():
+        print(f"{Fore.YELLOW}Cartella backup non trovata.{Style.RESET_ALL}")
+        prompt_for_input(f"\n{Fore.CYAN}Premi INVIO per continuare...{Style.RESET_ALL}")
+        return
+    backup_files = list(backup_dir.glob("*.db"))
+    if not backup_files:
+        print(f"{Fore.YELLOW}Nessun backup disponibile.{Style.RESET_ALL}")
+        prompt_for_input(f"\n{Fore.CYAN}Premi INVIO per continuare...{Style.RESET_ALL}")
+        return
+    backup_files.sort(key=lambda x: x.stat().st_mtime, reverse=True)
+    print(f"\n{Fore.BLUE}Scegli quale backup ripristinare:{Style.RESET_ALL}")
+    for i, backup_file in enumerate(backup_files, 1):
+        size_mb = backup_file.stat().st_size / (1024 * 1024)
+        creation_time = datetime.fromtimestamp(backup_file.stat().st_mtime)
+        date_str = creation_time.strftime('%d/%m/%Y alle %H:%M')
+        print(f"{i}. {backup_file.name} ({size_mb:.1f} MB) - {date_str}")
+    try:
+        choice = prompt_for_input(f"\n{Fore.CYAN}Numero del backup da ripristinare (0 per annullare): {Style.RESET_ALL}")
+        if choice == "0":
+            print(f"{Fore.YELLOW}Operazione annullata.{Style.RESET_ALL}")
+            prompt_for_input(f"\n{Fore.CYAN}Premi INVIO per continuare...{Style.RESET_ALL}")
+            return
+        backup_number = int(choice)
+        if backup_number < 1 or backup_number > len(backup_files):
+            print(f"{Fore.RED}Numero non valido.{Style.RESET_ALL}")
+            prompt_for_input(f"\n{Fore.CYAN}Premi INVIO per continuare...{Style.RESET_ALL}")
+            return
+        selected_backup = backup_files[backup_number - 1]
+        print(f"\n{Fore.YELLOW}ATTENZIONE:{Style.RESET_ALL}")
+        print(f"Il database attuale verrà sostituito con il backup '{selected_backup.name}'")
+        print(f"Tutti i dati non salvati andranno persi!")
+        confirm = prompt_for_input(f"\n{Fore.CYAN}Sei sicuro di voler procedere? (scrivi 'SI' per confermare): {Style.RESET_ALL}")
+        if confirm.upper() != 'SI':
+            print(f"{Fore.YELLOW}Operazione annullata.{Style.RESET_ALL}")
+            prompt_for_input(f"\n{Fore.CYAN}Premi INVIO per continuare...{Style.RESET_ALL}")
+            return
+        print(f"\n{Fore.CYAN}Ripristino in corso...{Style.RESET_ALL}")
+        cli_instance.db_manager.disconnect()  # Chiude tutte le connessioni
+        # Determina quale database ripristinare (websites/osint) in base al nome file
+        if "websites" in selected_backup.name:
+            main_db_path = cli_instance.db_manager.databases['websites']
+        elif "osint" in selected_backup.name:
+            main_db_path = cli_instance.db_manager.databases['osint']
+        else:
+            print(f"{Fore.RED}Impossibile determinare il database dal nome del backup.{Style.RESET_ALL}")
+            prompt_for_input(f"\n{Fore.CYAN}Premi INVIO per continuare...{Style.RESET_ALL}")
+            return
+        shutil.copy2(selected_backup, main_db_path)
+        cli_instance.db_manager.init_schema()  # Riconnette e re-inizializza
+        print(f"{Fore.GREEN}✓ Database ripristinato con successo!{Style.RESET_ALL}")
+        logger.info(f"Database restored from backup: {selected_backup.name}")
+    except ValueError:
+        print(f"{Fore.RED}Devi inserire un numero.{Style.RESET_ALL}")
+    except Exception as e:
+        print(f"{Fore.RED}Errore durante il ripristino: {e}{Style.RESET_ALL}")
+        logger.error(f"Error during restore: {e}", exc_info=True)
+        try:
+            cli_instance.db_manager.init_schema()
+        except:
+            pass
+    prompt_for_input(f"\n{Fore.CYAN}Premi INVIO per continuare...{Style.RESET_ALL}")
+
+def delete_backup() -> None:
+    """Elimina un backup selezionato."""
+    clear_screen()
+    print(f"\n{Fore.CYAN}--- ELIMINA BACKUP ---{Style.RESET_ALL}")
+    backup_dir = Path("data/databases/backups")
+    if not backup_dir.exists():
+        print(f"{Fore.YELLOW}Cartella backup non trovata.{Style.RESET_ALL}")
+        prompt_for_input(f"\n{Fore.CYAN}Premi INVIO per continuare...{Style.RESET_ALL}")
+        return
+    backup_files = list(backup_dir.glob("*.db"))
+    if not backup_files:
+        print(f"{Fore.YELLOW}Nessun backup da eliminare.{Style.RESET_ALL}")
+        prompt_for_input(f"\n{Fore.CYAN}Premi INVIO per continuare...{Style.RESET_ALL}")
+        return
+    backup_files.sort(key=lambda x: x.stat().st_mtime, reverse=True)
+    print(f"\n{Fore.BLUE}Scegli quale backup eliminare:{Style.RESET_ALL}")
+    for i, backup_file in enumerate(backup_files, 1):
+        size_mb = backup_file.stat().st_size / (1024 * 1024)
+        creation_time = datetime.fromtimestamp(backup_file.stat().st_mtime)
+        date_str = creation_time.strftime('%d/%m/%Y alle %H:%M')
+        print(f"{i}. {backup_file.name} ({size_mb:.1f} MB) - {date_str}")
+    try:
+        choice = prompt_for_input(f"\n{Fore.CYAN}Numero del backup da eliminare (0 per annullare): {Style.RESET_ALL}")
+        if choice == "0":
+            print(f"{Fore.YELLOW}Operazione annullata.{Style.RESET_ALL}")
+            prompt_for_input(f"\n{Fore.CYAN}Premi INVIO per continuare...{Style.RESET_ALL}")
+            return
+        backup_number = int(choice)
+        if backup_number < 1 or backup_number > len(backup_files):
+            print(f"{Fore.RED}Numero non valido.{Style.RESET_ALL}")
+            prompt_for_input(f"\n{Fore.CYAN}Premi INVIO per continuare...{Style.RESET_ALL}")
+            return
+        backup_to_delete = backup_files[backup_number - 1]
+        print(f"\n{Fore.YELLOW}Stai per eliminare: {backup_to_delete.name}{Style.RESET_ALL}")
+        confirm = prompt_for_input(f"{Fore.CYAN}Sei sicuro? (scrivi 'SI' per confermare): {Style.RESET_ALL}")
+        if confirm.upper() != 'SI':
+            print(f"{Fore.YELLOW}Operazione annullata.{Style.RESET_ALL}")
+            prompt_for_input(f"\n{Fore.CYAN}Premi INVIO per continuare...{Style.RESET_ALL}")
+            return
+        backup_to_delete.unlink()
+        print(f"{Fore.GREEN}✓ Backup eliminato con successo.{Style.RESET_ALL}")
+        logger.info(f"Backup deleted: {backup_to_delete.name}")
+    except ValueError:
+        print(f"{Fore.RED}Devi inserire un numero.{Style.RESET_ALL}")
+    except Exception as e:
+        print(f"{Fore.RED}Errore durante l'eliminazione: {e}{Style.RESET_ALL}")
+        logger.error(f"Error deleting backup: {e}", exc_info=True)
+    prompt_for_input(f"\n{Fore.CYAN}Premi INVIO per continuare...{Style.RESET_ALL}")
