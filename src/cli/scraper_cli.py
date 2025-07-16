@@ -37,15 +37,10 @@ fetcher_logger = logging.getLogger("scraper.fetcher")
 db_logger = logging.getLogger("DatabaseManager")
 
 class ScraperCLI:
-    '''
-    Classe: ScraperCLI
-    Gestisce l'interfaccia a riga di comando per lo strumento OSINT (ORCHESTRATORE).
-    '''
+    '''Gestisce l'interfaccia a riga di comando per lo strumento OSINT (ORCHESTRATORE).'''
+
     def __init__(self):
-        '''
-        Funzione: __init__
-        Inizializza l'interfaccia a riga di comando per lo strumento OSINT.
-        '''
+        '''Inizializza l'interfaccia a riga di comando per lo strumento OSINT.'''
         # Prima chiamiamo setup per inizializzare i percorsi
         self.setup()
         
@@ -71,10 +66,7 @@ class ScraperCLI:
         self.running = True
 
     def setup(self) -> None:
-        '''
-        Funzione: setup
-        Inizializza la configurazione di base delle directory e dei file.
-        '''
+        '''Inizializza la configurazione di base delle directory e dei file.'''
         self.base_dir = Path(__file__).parent.parent.parent
         self.env_file = self.base_dir / ".env"
         self.data_dir = self.base_dir / "data"
@@ -98,11 +90,8 @@ class ScraperCLI:
             logger.debug(f"Created directory: {dir_path}")
 
     def _load_api_keys_from_env(self) -> dict:
-        '''
-        Funzione: _load_api_keys_from_env
-        Carica le API keys dalle variabili d'ambiente e dal file .env.
-        '''
-        # Carica le variabili dal file .env
+        '''Carica le API keys dalle variabili d'ambiente e dal file .env.'''
+
         load_dotenv(self.env_file)
         
         api_keys = {
@@ -116,10 +105,8 @@ class ScraperCLI:
         return {k: v for k, v in api_keys.items() if v}
 
     def show_banner(self) -> None:
-        '''
-        Funzione: show_banner
-        Mostra un banner ASCII art all'avvio dell'applicazione.
-        '''
+        '''Mostra un banner ASCII art all'avvio dell'applicazione.'''
+
         banner = fr"""{Fore.CYAN}
 ██████╗ ██████╗  ██████╗ ██╗    ██╗███████╗██╗███╗   ██╗████████╗
 ██╔══██╗██╔══██╗██╔═══██╗██║    ██║██╔════╝██║████╗  ██║╚══██╔══╝
@@ -137,10 +124,7 @@ class ScraperCLI:
         time.sleep(0.5)
 
     def run(self) -> None:
-        '''
-        Funzione: run
-        Avvia il loop principale dell'applicazione CLI.
-        '''
+        '''Avvia il loop principale dell'applicazione CLI.'''
         try:
             self.show_banner()
 
@@ -228,7 +212,6 @@ class ScraperCLI:
             
     def _get_validated_url_input(self, prompt_message: str) -> str:
         '''
-        Funzione: _get_validated_url_input
         Ottiene e valida un input URL.
         '''
         url = prompt_for_input(prompt_message)
@@ -239,8 +222,7 @@ class ScraperCLI:
 
     def _get_depth_input(self, default: int = 2, message: str = None) -> int:
         '''
-        Funzione: _get_depth_input
-        Ottiene e valida un input di profondità.
+        Ottiene e valida un input di profondità di crawl.
         '''
         if message is None:
             message = f"Inserisci il limite di profondità (default: {default}): "

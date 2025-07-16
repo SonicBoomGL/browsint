@@ -22,7 +22,7 @@ class LinkInfo(TypedDict):
     url: str
     text: str
     rel: str
-    is_internal: bool # Added this field to match crawler's usage
+    is_internal: bool # ìCampo aggiunto per corrispondere all'uso del crawler
 
 class ExtractedData(TypedDict):
     '''
@@ -46,6 +46,7 @@ class ExtractedData(TypedDict):
         int internal_links_count -> Numero di link interni alla pagina
         int external_links_count -> Numero di link esterni alla pagina
     '''
+
     url: str
     title: str
     description: str
@@ -70,6 +71,7 @@ class WebParser:
         self -> Riferimento all'istanza della classe
         dict[str, dict[str, Any]] | None extraction_rules -> Dizionario con regole di estrazione personalizzate
     '''
+
     def __init__(self, extraction_rules: dict[str, dict[str, Any]] | None = None) -> None:
         self.extraction_rules = extraction_rules or {}
 
@@ -85,6 +87,7 @@ class WebParser:
         Valore di ritorno:
             ExtractedData -> Dizionario contenente i dati estratti dalla pagina
         '''
+        
         if not html:
             logger.warning("HTML vuoto, impossibile effettuare il parsing")
             return {

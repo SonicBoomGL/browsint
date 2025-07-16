@@ -2,8 +2,9 @@ from db.manager import DatabaseManager
 
 
 def init_databases() -> bool:
-    # Get database manager instance
-    db_manager = DatabaseManager.get_instance()
+    '''Inizializza i database e le loro configurazioni.'''
+
+    db_manager = DatabaseManager.get_instance() # Pattern singleton per assicurarsi che solo un istanza esiste
 
     # Initialize schemas for all databases
     if db_manager.init_schema():
