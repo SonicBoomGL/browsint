@@ -4,6 +4,12 @@
 ![License](https://img.shields.io/badge/License-MIT-YELLOW.svg)
 ![Status](https://img.shields.io/badge/Status-Beta-orange.svg)
 
+<img src="images/Browsint_LOGO.png" alt="Browsint Logo" width="500"/>
+
+<img src="images/Browsint_CLI.png" alt="Browsint CLI" width="700"/>
+
+
+
 ## 📝 Descrizione
 
 Browsint è un toolkit OSINT (Open Source Intelligence) in Python per la raccolta e l'analisi di informazioni da fonti pubbliche su persone, domini, siti web ed entità correlate.
