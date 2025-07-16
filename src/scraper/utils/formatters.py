@@ -18,14 +18,15 @@ TEXT_WHITE = Fore.WHITE + Style.BRIGHT
 SEPARATOR_BLUE = Fore.CYAN + Style.DIM
 
 def generate_html_report(profile: dict) -> str:
-    '''
-    Funzione: _generate_html_report
-    Genera un report in formato HTML da un profilo OSINT (funzionalità placeholder).
-    Parametri formali:
-        dict profile -> Dizionario contenente i dati del profilo OSINT
-    Valore di ritorno:
-        str -> Una stringa contenente il codice HTML del report
-    '''
+    """
+    Genera un report HTML da un profilo OSINT.
+
+    Args:
+        profile (dict): Dizionario contenente i dati del profilo OSINT.
+
+    Returns:
+        str: Una stringa contenente il codice HTML del report.
+    """
     domain = profile.get("entity", {}).get("name", "N/A")
 
     html = f"""<!DOCTYPE html>
@@ -95,7 +96,13 @@ except ImportError:
 
 def text_report_to_html(text: str) -> str:
     """
-    Converts a colored/text report to a simple HTML preserving sections and line breaks, stripping ANSI codes.
+    Converte un report testuale (con eventuali codici colore ANSI) in HTML semplice, preservando sezioni e a capo.
+
+    Args:
+        text (str): Testo del report da convertire.
+
+    Returns:
+        str: HTML risultante.
     """
     # Improved regex to remove all ANSI escape codes
     ansi_escape = re.compile(r'(\x1B\[[0-9;]*[A-Za-z])|([\u001b\u009b][[\]()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><~])')
@@ -110,7 +117,15 @@ def text_report_to_html(text: str) -> str:
 
 def create_pdf_from_html(html_content: str, output_path: str, fallback_text: str = None) -> None:
     """
-    Create a PDF from HTML using pdfkit if available, otherwise fallback to ReportLab text PDF.
+    Crea un PDF a partire da HTML usando pdfkit se disponibile, altrimenti usa ReportLab per un PDF testuale.
+
+    Args:
+        html_content (str): HTML da convertire in PDF.
+        output_path (str): Percorso di output del PDF.
+        fallback_text (str, opzionale): Testo da usare se la conversione HTML fallisce.
+
+    Returns:
+        None
     """
     if not PDFKIT_AVAILABLE:
         if fallback_text:
@@ -130,7 +145,18 @@ def create_pdf_from_html(html_content: str, output_path: str, fallback_text: str
 
 def create_pdf_domain_report(data: dict, target_input: str, domain_analyzed: str, shodan_skipped: bool, output_path: str, use_html: bool = True) -> None:
     """
-    Create a PDF report for domain analysis. If use_html is True and pdfkit is available, use HTML-to-PDF, otherwise fallback to reportlab.
+    Crea un PDF per l'analisi di un dominio. Usa HTML-to-PDF se possibile, altrimenti fallback a ReportLab.
+
+    Args:
+        data (dict): Dati raccolti (WHOIS, DNS, Shodan, ecc.).
+        target_input (str): Input originale dell'utente.
+        domain_analyzed (str): Dominio effettivamente analizzato.
+        shodan_skipped (bool): Se la scansione Shodan è stata saltata.
+        output_path (str): Percorso di output del PDF.
+        use_html (bool): Se usare HTML-to-PDF (default True).
+
+    Returns:
+        None
     """
     try:
         html_report = formal_html_report_domain(data, target_input, domain_analyzed, shodan_skipped)
@@ -144,7 +170,18 @@ def create_pdf_domain_report(data: dict, target_input: str, domain_analyzed: str
 
 def create_pdf_page_report(url: str, parsed_data: dict, osint_data: dict, save_paths: dict, output_path: str, use_html: bool = True) -> None:
     """
-    Create a PDF report for page analysis. If use_html is True and pdfkit is available, use HTML-to-PDF, otherwise fallback to reportlab.
+    Crea un PDF per l'analisi di una pagina web. Usa HTML-to-PDF se possibile, altrimenti fallback a ReportLab.
+
+    Args:
+        url (str): URL della pagina analizzata.
+        parsed_data (dict): Dati strutturati estratti dal parser.
+        osint_data (dict): Dati OSINT rilevati sulla pagina.
+        save_paths (dict): Percorsi dei file salvati.
+        output_path (str): Percorso di output del PDF.
+        use_html (bool): Se usare HTML-to-PDF (default True).
+
+    Returns:
+        None
     """
     # Use the new formal report for both HTML and PDF
     try:
@@ -160,7 +197,20 @@ def create_pdf_page_report(url: str, parsed_data: dict, osint_data: dict, save_p
 
 def create_pdf_combined_report(domain_data: dict, page_data: dict, target_input: str, domain_analyzed: str, url: str, shodan_skipped: bool, output_path: str, use_html: bool = True) -> None:
     """
-    Create a combined PDF report for domain and page analysis.
+    Crea un PDF combinato per analisi dominio e pagina web.
+
+    Args:
+        domain_data (dict): Dati OSINT del dominio.
+        page_data (dict): Dati analisi della pagina.
+        target_input (str): Input originale dell'utente.
+        domain_analyzed (str): Dominio effettivamente analizzato.
+        url (str): URL della pagina.
+        shodan_skipped (bool): Se la scansione Shodan è stata saltata.
+        output_path (str): Percorso di output del PDF.
+        use_html (bool): Se usare HTML-to-PDF (default True).
+
+    Returns:
+        None
     """
     domain_report = format_domain_osint_report(domain_data, target_input, domain_analyzed, shodan_skipped)
     page_report = format_page_analysis_report(
@@ -181,7 +231,15 @@ def create_pdf_combined_report(domain_data: dict, page_data: dict, target_input:
 
 def _create_pdf_from_text(text_report: str, output_path: str, title: str = "OSINT Report") -> None:
     """
-    Helper to create a simple PDF from plain text using reportlab.
+    Helper per creare un PDF semplice da testo usando ReportLab.
+
+    Args:
+        text_report (str): Testo del report.
+        output_path (str): Percorso di output del PDF.
+        title (str): Titolo del report (default "OSINT Report").
+
+    Returns:
+        None
     """
     if not REPORTLAB_AVAILABLE:
         raise ImportError("ReportLab is required for PDF generation. Install it with: pip install reportlab")
@@ -204,7 +262,15 @@ def _create_pdf_from_text(text_report: str, output_path: str, title: str = "OSIN
     c.save()
 
 def create_section_box(title: str, content_lines: list, min_width: int = 60) -> list:
-    """Crea una sezione con box dinamico basato sul contenuto"""
+    """
+    Crea una sezione con box dinamico basato sul contenuto.
+    Args:
+        title: Titolo della sezione.
+        content_lines: Lista di stringhe da includere nella sezione.
+        min_width: Larghezza minima del box (default 60).
+    Returns:
+        list: Lista di stringhe che rappresentano la sezione formattata.
+    """
     
     def strip_ansi_codes(text):
         ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
@@ -585,7 +651,14 @@ def format_page_analysis_report(url: str, parsed_data: Dict[str, Any], osint_dat
 
 def formal_html_report_page(url, parsed_data, osint_data, save_paths):
     """
-    Generate a clean, styled HTML report for a page analysis with sections and tables.
+    Genera un report HTML pulito e stilizzato per l'analisi di una pagina web.
+    Args:
+        url: URL della pagina analizzata.
+        parsed_data: Dati strutturati estratti dal parser.
+        osint_data: Dati OSINT rilevati sulla pagina.
+        save_paths: Dizionario con i percorsi dei file salvati.
+    Returns:
+        str: HTML del report.
     """
     title = parsed_data.get("title", "N/A")
     description = parsed_data.get("description", "N/A")
@@ -680,7 +753,15 @@ def formal_html_report_page(url, parsed_data, osint_data, save_paths):
 
 def formal_pdf_report_page(url, parsed_data, osint_data, save_paths, output_path):
     """
-    Generate a clean, styled PDF report for a page analysis with sections and tables.
+    Genera un report PDF pulito e stilizzato per l'analisi di una pagina web.
+    Args:
+        url: URL della pagina analizzata.
+        parsed_data: Dati strutturati estratti dal parser.
+        osint_data: Dati OSINT rilevati sulla pagina.
+        save_paths: Dizionario con i percorsi dei file salvati.
+        output_path: Percorso di output del PDF.
+    Returns:
+        None
     """
     if not REPORTLAB_AVAILABLE:
         raise ImportError("ReportLab is required for PDF generation. Install it with: pip install reportlab")
@@ -754,6 +835,16 @@ def formal_pdf_report_page(url, parsed_data, osint_data, save_paths, output_path
     doc.build(story)
 
 def formal_html_report_domain(data, target_input, domain_analyzed, shodan_skipped):
+    """
+    Genera un report HTML pulito e stilizzato per il profilo dominio OSINT.
+    Args:
+        data: Dati raccolti (WHOIS, DNS, Shodan, ecc.).
+        target_input: Input originale dell'utente.
+        domain_analyzed: Dominio effettivamente analizzato.
+        shodan_skipped: Booleano, se la scansione Shodan è stata saltata.
+    Returns:
+        str: HTML del report.
+    """
     whois = data.get("whois", {})
     dns = data.get("dns", {})
     shodan = data.get("shodan", {})
@@ -838,6 +929,17 @@ def formal_html_report_domain(data, target_input, domain_analyzed, shodan_skippe
     return html
 
 def formal_pdf_report_domain(data, target_input, domain_analyzed, shodan_skipped, output_path):
+    """
+    Genera un report PDF pulito e stilizzato per il profilo dominio OSINT.
+    Args:
+        data: Dati raccolti (WHOIS, DNS, Shodan, ecc.).
+        target_input: Input originale dell'utente.
+        domain_analyzed: Dominio effettivamente analizzato.
+        shodan_skipped: Booleano, se la scansione Shodan è stata saltata.
+        output_path: Percorso di output del PDF.
+    Returns:
+        None
+    """
     if not REPORTLAB_AVAILABLE:
         raise ImportError("ReportLab is required for PDF generation. Install it with: pip install reportlab")
     from reportlab.lib.pagesizes import A4

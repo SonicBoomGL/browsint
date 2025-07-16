@@ -386,7 +386,17 @@ class DatabaseManager:
         return []
 
     def get_database_size(self, db_name: str) -> float:
-        """Restituisce la dimensione del database in MB."""
+        '''
+        Funzione: get_database_size
+        Restituisce la dimensione del database specificato in megabyte (MB).
+
+        Parametri formali:
+            self -> Riferimento all'istanza della classe
+            str db_name -> Nome del database di cui calcolare la dimensione
+
+        Valore di ritorno:
+            float -> Dimensione del database in MB (float). Restituisce 0.0 in caso di errore o se il file non esiste.
+        '''
         try:
             if db_name not in self.databases: 
                 raise ValueError(f"Database '{db_name}' non trovato")  
@@ -404,7 +414,17 @@ class DatabaseManager:
             return 0.0
 
     def get_all_table_names(self, db_name: str) -> list[str]:
-        """Recupera i nomi di tutte le tabelle nel database."""
+        '''
+        Funzione: get_all_table_names
+        Recupera i nomi di tutte le tabelle presenti nel database specificato, escludendo le tabelle di sistema SQLite.
+
+        Parametri formali:
+            self -> Riferimento all'istanza della classe
+            str db_name -> Nome del database dal quale recuperare i nomi delle tabelle
+
+        Valore di ritorno:
+            list[str] -> Una lista contenente i nomi delle tabelle presenti nel database, o una lista vuota in caso di errore
+        '''
         try:
             if not self.connect(db_name):
                 return []
@@ -422,7 +442,17 @@ class DatabaseManager:
             return []
         
     def backup_database(self, db_name: str) -> tuple[bool, str]:
-        """Crea un backup del database specificato."""
+        '''
+        Funzione: backup_database
+        Crea un backup del database specificato, salvando una copia del file in una cartella "backups" con timestamp.
+
+        Parametri formali:
+            self -> Riferimento all'istanza della classe
+            str db_name -> Nome del database da cui creare il backup
+
+        Valore di ritorno:
+            tuple[bool, str] -> Una tupla contenente True e il percorso del backup se riuscito, False e il messaggio di errore altrimenti
+        '''
         try:
             if db_name not in self.databases:
                 return False, f"Database '{db_name}' non trovato"
@@ -454,7 +484,18 @@ class DatabaseManager:
             return False, str(e)
     
     def clear_table(self, table_name: str, db_name: str) -> bool:
-        """Svuota una tabella specifica."""
+        '''
+        Funzione: clear_table
+        Svuota (cancella tutti i dati) una tabella specifica all'interno del database indicato.
+
+        Parametri formali:
+            self -> Riferimento all'istanza della classe
+            str table_name -> Nome della tabella da svuotare
+            str db_name -> Nome del database in cui si trova la tabella
+
+        Valore di ritorno:
+            bool -> True se la tabella è stata svuotata con successo, False in caso di errore
+        '''
         try:
             if not self.connect(db_name):
                 return False
@@ -469,7 +510,17 @@ class DatabaseManager:
             return False
         
     def clear_all_tables(self, db_name: str) -> tuple[bool, list[str]]:
-        """Svuota tutte le tabelle nel database specificato."""
+        '''
+        Funzione: clear_all_tables
+        Svuota (cancella tutti i dati) tutte le tabelle presenti nel database specificato.
+
+        Parametri formali:
+            self -> Riferimento all'istanza della classe
+            str db_name -> Nome del database di cui svuotare tutte le tabelle
+
+        Valore di ritorno:
+            tuple[bool, list[str]] -> Una tupla con True e la lista delle tabelle svuotate se riuscito, False e la lista parziale in caso di errore
+        '''
         cleared_tables = []
         try:
             tables = self.get_all_table_names(db_name) # prendo ogni nome di tabella
