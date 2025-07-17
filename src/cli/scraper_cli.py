@@ -215,8 +215,11 @@ class ScraperCLI:
         Ottiene e valida un input URL.
         '''
         url = prompt_for_input(prompt_message)
-        if not url or not validators.url(url):
-            print(f"{Fore.RED}✗ URL non valido.")
+        if not url:
+            print(f"{Fore.RED}✗ L'URL non può essere vuoto.{Style.RESET_ALL}")
+            return None
+        if not validators.url(url):
+            print(f"{Fore.RED}✗ URL non valido.{Style.RESET_ALL}")
             return None
         return url
 

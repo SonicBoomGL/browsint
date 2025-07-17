@@ -97,13 +97,17 @@ def profile_domain_cli(cli_instance: 'ScraperCLI'):
 
     domain = prompt_for_input("Inserisci il dominio da profilare (es. example.com): ").strip()
     if not domain:
-        print(f"{Fore.RED}✗ Domain cannot be empty{Style.RESET_ALL}")
+        print(f"{Fore.RED}✗ Il dominio / url non può essere vuoto{Style.RESET_ALL}")
         return
 
     print(f"{Fore.YELLOW}⏳ Raccolta dati OSINT per {domain}...{Style.RESET_ALL}")
 
     try:
-        profile = cli_instance.osint_extractor.profile_domain(domain)
+        try:
+            profile = cli_instance.osint_extractor.profile_domain(domain)
+        except KeyboardInterrupt:
+            print(f"\n{Fore.YELLOW}Operazione annullata dall'utente.{Style.RESET_ALL}")
+            return
 
         if profile and not profile.get("error"):
             cli_instance.osint_extractor._display_osint_profile(profile, domain)
@@ -134,24 +138,32 @@ def profile_email_cli(cli_instance: 'ScraperCLI'):
 
     print(f"{Fore.YELLOW}⏳ Profilazione email: {email_input}...{Style.RESET_ALL}")
 
-    profile_result = cli_instance.osint_extractor.profile_email(email_input)
+    try:
+        try:
+            profile_result = cli_instance.osint_extractor.profile_email(email_input)
+        except KeyboardInterrupt:
+            print(f"\n{Fore.YELLOW}Operazione annullata dall'utente.{Style.RESET_ALL}")
+            return
 
-    if profile_result and not profile_result.get("error"):
-        cli_instance.osint_extractor._display_osint_profile(profile_result, email_input)
-        cli_instance.osint_extractor._offer_additional_actions(profile_result, email_input)
+        if profile_result and not profile_result.get("error"):
+            cli_instance.osint_extractor._display_osint_profile(profile_result, email_input)
+            cli_instance.osint_extractor._offer_additional_actions(profile_result, email_input)
 
-        action_choice = prompt_for_input("Seleziona un'opzione (1-2): ").strip()
-        if action_choice == '1':
-            export_osint_profile_cli(cli_instance, profile_data=profile_result)
-        elif action_choice == '2':
-            pass
+            action_choice = prompt_for_input("Seleziona un'opzione (1-2): ").strip()
+            if action_choice == '1':
+                export_osint_profile_cli(cli_instance, profile_data=profile_result)
+            elif action_choice == '2':
+                pass
+            else:
+                print(f"{Fore.RED}✗ Scelta azione non valida.{Style.RESET_ALL}")
+
+        elif profile_result and profile_result.get("error"):
+                print(f"{Fore.RED}✗ Errore Profilazione Email: {profile_result.get('error')}")
         else:
-            print(f"{Fore.RED}✗ Scelta azione non valida.{Style.RESET_ALL}")
-
-    elif profile_result and profile_result.get("error"):
-            print(f"{Fore.RED}✗ Errore Profilazione Email: {profile_result.get('error')}")
-    else:
-            print(f"{Fore.YELLOW}⚠ Nessun risultato significativo per '{email_input}'. Controlla l'input o le API keys.{Style.RESET_ALL}")
+                print(f"{Fore.YELLOW}⚠ Nessun risultato significativo per '{email_input}'. Controlla l'input o le API keys.{Style.RESET_ALL}")
+    except Exception as e:
+        logger.error(f"Error during email profiling: {e}", exc_info=True)
+        print(f"{Fore.RED}✗ Errore durante la profilazione: {e}{Style.RESET_ALL}")
 
 def profile_username_cli(cli_instance: 'ScraperCLI'):
     '''
@@ -167,7 +179,11 @@ def profile_username_cli(cli_instance: 'ScraperCLI'):
     print(f"{Fore.YELLOW}⏳ Ricerca profili social per: {target_input}...{Style.RESET_ALL}")
 
     try:
-        profile_result = cli_instance.osint_extractor.profile_username(target_input)
+        try:
+            profile_result = cli_instance.osint_extractor.profile_username(target_input)
+        except KeyboardInterrupt:
+            print(f"\n{Fore.YELLOW}Operazione annullata dall'utente.{Style.RESET_ALL}")
+            return
         
         if profile_result and not profile_result.get("error"):
             # Mostra i profili trovati man mano che vengono scoperti

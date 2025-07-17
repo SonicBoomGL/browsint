@@ -89,6 +89,9 @@ def download_single_url(cli_instance: 'ScraperCLI') -> None:
                     print(f"{Fore.RED}✗ Errore nel salvataggio del file: {e_save}")
         else:
             print(f"{Fore.RED}✗ Download fallito o contenuto vuoto per {url}.")
+    except KeyboardInterrupt:
+        print(f"\n{Fore.YELLOW}Operazione annullata dall'utente.{Style.RESET_ALL}")
+        return
     except Exception as e:
         logger.error(f"Error during single URL download {url}: {e}", exc_info=True)
         print(f"{Fore.RED}✗ Errore durante il download: {e}")
@@ -138,6 +141,9 @@ def download_multiple_urls(cli_instance: 'ScraperCLI') -> None:
                 else:
                     report_lines.append(f"[FAILED] {url} -> Nessun contenuto o errore download.")
                     print(f"{Fore.RED}✗ Fallito (nessun contenuto).{Style.RESET_ALL}")
+            except KeyboardInterrupt:
+                print(f"\n{Fore.YELLOW}Operazione annullata dall'utente durante il download multiplo.{Style.RESET_ALL}")
+                break
             except Exception as e_multi:
                 logger.error(f"Error downloading {url} in batch: {e_multi}", exc_info=True)
                 report_lines.append(f"[ERROR] {url} -> {e_multi}")
@@ -154,6 +160,9 @@ def download_multiple_urls(cli_instance: 'ScraperCLI') -> None:
         print(f"\n{Fore.YELLOW}✓ Download batch completato. Report salvato in: {report_file_path}")
         print(f"{Fore.CYAN}File salvati in: {batch_download_dir}{Style.RESET_ALL}")
 
+    except KeyboardInterrupt:
+        print(f"\n{Fore.YELLOW}Operazione annullata dall'utente durante il download multiplo.{Style.RESET_ALL}")
+        return
     except Exception as e_main:
         logger.error(f"General error during multiple URL download: {e_main}", exc_info=True)
         print(f"{Fore.RED}✗ Errore generale durante il download multiplo: {e_main}")
@@ -167,12 +176,13 @@ def start_website_crawl_base(cli_instance: 'ScraperCLI') -> None:
     print(f"█ {Fore.WHITE}{'CRAWL E DOWNLOAD STRUTTURA SITO WEB':^36}{Fore.BLUE} █")
     print(f"{'═' * 40}{Style.RESET_ALL}\n")
 
-    url = cli_instance._get_validated_url_input("Inserisci l'URL di partenza per il crawling (es. https://example.com): ") 
+    url = cli_instance._get_validated_url_input("Inserisci l'URL di partenza per il crawling (es. https://example.com): ")
+    if not url:
+        return
     parsed = urlparse(url)
     if not parsed.scheme:
         url = "https://" + url
-    if not url:
-        return
+    
 
     depth = cli_instance._get_depth_input(default=2, message="Inserisci il limite di profondità per il crawling (default: 2): ")
     if depth is None:
@@ -204,13 +214,17 @@ def start_website_crawl_base(cli_instance: 'ScraperCLI') -> None:
         original_crawler_osint_extractor = crawler_instance.osint_extractor 
         crawler_instance.osint_extractor = None # Disabilita l'OSINT extractor per questa operazione
 
-        crawl_stats = crawler_instance.start_crawl(
-            start_url=url,
-            depth_limit=depth,
-            politeness_delay=1.0,
-            perform_osint_on_pages=False,
-            save_to_disk=True  # Modalità download
-        )
+        try:
+            crawl_stats = crawler_instance.start_crawl(
+                start_url=url,
+                depth_limit=depth,
+                politeness_delay=1.0,
+                perform_osint_on_pages=False,
+                save_to_disk=True  # Modalità download
+            )
+        except KeyboardInterrupt:
+            print(f"\n{Fore.YELLOW}Crawling annullato dall'utente.{Style.RESET_ALL}")
+            return
         
         # Ripristina l'osint_extractor originale del crawler per operazioni future
         crawler_instance.osint_extractor = original_crawler_osint_extractor

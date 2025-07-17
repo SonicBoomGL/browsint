@@ -525,8 +525,8 @@ def restore_from_backup(cli_instance: 'ScraperCLI') -> None:
         print(f"\n{Fore.YELLOW}ATTENZIONE:{Style.RESET_ALL}")
         print(f"Il database attuale verrà sostituito con il backup '{selected_backup.name}'")
         print(f"Tutti i dati non salvati andranno persi!")
-        confirm = prompt_for_input(f"\n{Fore.CYAN}Sei sicuro di voler procedere? (scrivi 'SI' per confermare): {Style.RESET_ALL}")
-        if confirm.upper() != 'SI':
+        confirm = prompt_for_input(f"\n{Fore.CYAN}Sei sicuro di voler procedere? (s/N): {Style.RESET_ALL}")
+        if confirm != 's':
             print(f"{Fore.YELLOW}Operazione annullata.{Style.RESET_ALL}")
             prompt_for_input(f"\n{Fore.CYAN}Premi INVIO per continuare...{Style.RESET_ALL}")
             return
@@ -590,8 +590,8 @@ def delete_backup() -> None:
             return
         backup_to_delete = backup_files[backup_number - 1]
         print(f"\n{Fore.YELLOW}Stai per eliminare: {backup_to_delete.name}{Style.RESET_ALL}")
-        confirm = prompt_for_input(f"{Fore.CYAN}Sei sicuro? (scrivi 'SI' per confermare): {Style.RESET_ALL}")
-        if confirm.upper() != 'SI':
+        confirm = prompt_for_input(f"{Fore.CYAN}Sei sicuro? (s/N): {Style.RESET_ALL}")
+        if confirm != 's':
             print(f"{Fore.YELLOW}Operazione annullata.{Style.RESET_ALL}")
             prompt_for_input(f"\n{Fore.CYAN}Premi INVIO per continuare...{Style.RESET_ALL}")
             return

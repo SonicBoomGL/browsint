@@ -65,7 +65,11 @@ def analyze_page_structure(cli_instance: 'ScraperCLI') -> None:
 
     print(f"{Fore.YELLOW}⏳ Analisi struttura pagina per {url}...{Style.RESET_ALL}")
     try:
-        response = cli_instance.web_fetcher.fetch_full_response(url) # ottengo anche gli headers e lo stato della risposta
+        try:
+            response = cli_instance.web_fetcher.fetch_full_response(url) # ottengo anche gli headers e lo stato della risposta
+        except KeyboardInterrupt:
+            print(f"\n{Fore.YELLOW}Operazione annullata dall'utente.{Style.RESET_ALL}")
+            return
         if not response or not response.content:
             print(f"{Fore.RED}✗ Impossibile scaricare il contenuto per l'analisi.")
             return
@@ -107,6 +111,9 @@ def analyze_page_structure(cli_instance: 'ScraperCLI') -> None:
         if export_choice != "0":
             _export_analysis_results(cli_instance, url, parsed_data, osint_data, export_choice)
 
+    except KeyboardInterrupt:
+        print(f"\n{Fore.YELLOW}Operazione annullata dall'utente.{Style.RESET_ALL}")
+        return
     except Exception as e:
         logger.error(f"Error during page structure analysis for {url}: {e}", exc_info=True)
         print(f"{Fore.RED}✗ Errore durante l'analisi della pagina: {e}")
@@ -123,12 +130,13 @@ def start_website_crawl_with_osint(cli_instance: 'ScraperCLI') -> None:
         return
 
     url = prompt_for_input("Inserisci l'URL di partenza per il crawling OSINT: ")
-    parsed = urlparse(url)
-    if not parsed.scheme:
-        url = "https://" + url
     if not url:
         print(f"{Fore.RED}✗ URL non può essere vuoto.")
         return
+    parsed = urlparse(url)
+    if not parsed.scheme:
+        url = "https://" + url
+    
 
     depth_str = prompt_for_input("Inserisci il limite di profondità (default: 1): ")
     depth = int(depth_str) if depth_str.isdigit() else 1
@@ -141,12 +149,16 @@ def start_website_crawl_with_osint(cli_instance: 'ScraperCLI') -> None:
     fetcher_logger.setLevel(logging.WARNING)
 
     try:
-        crawl_stats = cli_instance.crawler.start_crawl(
-            start_url=url,
-            depth_limit=depth,
-            perform_osint_on_pages=True,
-            save_to_disk=False  # Non salvare su disco in modalità OSINT
-        )
+        try:
+            crawl_stats = cli_instance.crawler.start_crawl(
+                start_url=url,
+                depth_limit=depth,
+                perform_osint_on_pages=True,
+                save_to_disk=False  # Non salvare su disco in modalità OSINT
+            )
+        except KeyboardInterrupt:
+            print(f"\n{Fore.YELLOW}Crawling OSINT annullato dall'utente.{Style.RESET_ALL}")
+            return
 
         _display_base_crawl_stats(crawl_stats)
 
