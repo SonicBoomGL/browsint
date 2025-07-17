@@ -45,6 +45,11 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
+
+**Nota**: Se si riscontrano  problemi durante l'installazione dei requirments.txt potrebbe essere necessario scaricare il seguente pacchetto:
+  ```bash
+sudo apt-get install python3-dev
+```
 ## ⚙️ Configurazione
 
 Per utilizzare al massimo le funzionalità OSINT, crea un file `.env` nella directory radice del progetto con le seguenti API keys:
