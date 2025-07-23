@@ -7,10 +7,63 @@ import shodan # Per Shodan
 from dns import resolver as dns_resolver # Per DNS
 from typing import List, Dict, Any, Optional
 from datetime import datetime # Per la gestione delle date in WHOIS
+import sys
+import time
+from waybackpy import WaybackMachineCDXServerAPI
+from colorama import Fore, Style
 
 # È una buona pratica avere un logger per modulo
 logger = logging.getLogger(__name__)
 
+
+# === Wayback Machine Client ===
+def fetch_wayback_snapshots(url: str, limit: int = 5) -> Dict [str, Any]:
+    '''
+    Funzione: fetch_wayback_snapshots
+    Recupera una lista degli ultimi snapshot da Wayback Machine per un dato URL.
+    Parametri formali:
+        url: L'URL per cui cercare gli snapshot
+        limit: Il numero massimo di snapshot da recuperare (default 5)
+    Valore di ritorno:
+        dict[str, Any] -> Un dizionario contenente i dati degli snapshot o un messaggio di errore
+    '''
+
+    try:
+        logger.debug(f"Fetching Wayback Machine snapshots for URL: {url} with limit {limit}")
+        print(f"Cercando snapshot per {url} con limite {limit}...")  # Per debug
+        cdx_api = WaybackMachineCDXServerAPI(url, user_agent= "Browsint BETA")
+        cdx_api.limit = limit  # Imposta il limite di snapshot da recuperare
+        snapshots = cdx_api.snapshots()
+
+        if not snapshots:
+            logger.info(f"No snapshots found for {url}.")
+            return {"info": f"No snapshots found for {url}."}
+
+        # Converti i risultati in un formato più leggibile
+        results = []
+        for s in snapshots:
+            results.append({
+                "timestamp": s.timestamp,
+                "url": s.archive_url, # URL dell'archivio effettivo
+                "original_url": s.original,
+                "status_code": s.statuscode,
+                "mime_type": s.mimetype,
+                "diges": s.digest  # Hash del contenuto
+            })
+
+            print(f"Trovato snapshot numero {len(results)}:{s.archive_url}")
+            if len(results) > 5: break
+
+        logger.debug(f"Found {len(results)} snapshots for {url}.")
+        return {"snapshots": results}
+
+    except requests.exceptions.RequestException as e:
+        logger.warning(f"Network error fetching Wayback Machine data for {url}: {e}")
+        return {"error": f"Si è verificato un errore di rete durante il lookup su Wayback Machine: {e}"}
+    except Exception as e:
+        logger.error(f"Unexpected error during Wayback Machine lookup for {url}: {e}", exc_info=True)
+        return {"error": f"Si è verificato il seguente errore durante l'esecuzione del Wayback Machine lookup: {e}"}
+    
 
 # === Hunter.io Client ===
 def fetch_hunterio(email: str, api_key: Optional[str]) -> Dict[str, Any]:

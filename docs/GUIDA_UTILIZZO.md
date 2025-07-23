@@ -143,8 +143,7 @@ Browsint è un'applicazione Python strutturata con un'architettura modulare e a 
     Questo frammento evidenzia l'impegno a non sovraccaricare i server web, rispettando il `Crawl-Delay` specificato nel file `robots.txt` del sito, migliorando l'etica e la stabilità del crawling.
     
 
----
-<div style="page-break-before: always;"></div>
+
 ## d. Commenti su particolari procedure implementate
 
 1. **Gestione Caching HTTP** (scraper/fetcher.py):
@@ -183,7 +182,7 @@ Browsint è un'applicazione Python strutturata con un'architettura modulare e a 
     
 
 ---
-<div style="page-break-before: always;"></div>
+
 ## e. Utilizzo e Report
 
 Per avviare l'applicazione, è necessario eseguire il file `main.py` dalla riga di comando.

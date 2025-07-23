@@ -49,7 +49,20 @@ def extract_structured_fields(data: dict[str, Any], source_type: str) -> dict[st
                 )
             if dns_data := data.get("dns"):
                 structured["dns_records"] = dns_data
-
+            
+            if wayback_data := data.get("wayback_machine"):
+                if not wayback_data.get("error") and not wayback_data.get("info"): # Controllo che non sia un errore o skip
+                    snapshots = wayback_data.get("snapshots", [])
+                    if snapshots:
+                        structured["wayback_snapshot_count"] = len(snapshots)
+                        # Prendi i 5 snapshot più recenti per un'anteprima
+                        structured["wayback_latest_snapshots"] = [
+                            {"timestamp": s["timestamp"], "url": s["url"]}
+                            for s in snapshots[:5]
+                        ]
+                    else:
+                        structured["wayback_snapshot_count"] = 0
+                        
         elif source_type == "email":
             if hunter_info := data.get("hunterio"):
                 hunter_data_content = hunter_info.get("data", hunter_info)

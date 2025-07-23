@@ -455,6 +455,27 @@ def format_domain_osint_report(data: Dict[str, Any], target_input: str, domain_a
     report_parts.extend(create_section_box("SCANSIONE SHODAN", shodan_content))
     report_parts.append("")
 
+    # Wayback Machine
+    wayback_content = []
+    wayback_info = data.get("wayback_machine", {})
+
+    if wayback_info.get("error"):
+        wayback_content.append(f"{WARNING_BLUE}  Status: {wayback_info['error']}{Style.RESET_ALL}")
+    elif wayback_info.get("info"):
+        wayback_content.append(f"  {Fore.CYAN}{wayback_info['info']}{Style.RESET_ALL}")
+    elif snapshots := wayback_info.get("snapshots"):
+        wayback_content.append(f"{DATA_BLUE}  ▶ Ultimi {min(len(snapshots), 5)} Snapshot:{Style.RESET_ALL}")
+        for i, s in enumerate(snapshots[:5]): # Mostra solo i primi 5 per concisione
+            prefix = "├─" if i < min(len(snapshots), 5) - 1 else "└─"
+            timestamp = s.get('timestamp', 'N/A')
+            url = s.get('url', 'N/A')
+            wayback_content.append(f"    {prefix} {TEXT_WHITE}{timestamp}: {url}{Style.RESET_ALL}")
+    else:
+        wayback_content.append(f"{WARNING_BLUE}  Nessun snapshot trovato.{Style.RESET_ALL}")
+
+    report_parts.extend(create_section_box("WAYBACK MACHINE", wayback_content))
+    report_parts.append("")
+    
     # Punti di Interesse / Note
     notes_content = []
     if "contact privacy" in organization.lower() or "proxy" in organization.lower():
@@ -462,7 +483,7 @@ def format_domain_osint_report(data: Dict[str, Any], target_input: str, domain_a
     if "wixdns.net" in str(name_servers).lower():
         notes_content.append(f"{Fore.CYAN}🌐 I Name Servers indicano che il sito è ospitato o gestito tramite la piattaforma Wix.com.{Style.RESET_ALL}")
     if a_records:
-        notes_content.append(f"{Fore.CYAN}🖥️  Gli indirizzi IP ({TEXT_WHITE}{', '.join(a_records)} {Style.RESET_ALL} {Fore.CYAN}) sono associati a {TEXT_WHITE}Wix.com{Style.RESET_ALL}{Fore.CYAN}, confermando l'hosting.{Style.RESET_ALL}")
+        notes_content.append(f"{Fore.CYAN}🖥️ Gli indirizzi IP ({TEXT_WHITE}{', '.join(a_records)} {Style.RESET_ALL} {Fore.CYAN}) sono associati a {TEXT_WHITE}Wix.com{Style.RESET_ALL}{Fore.CYAN}, confermando l'hosting.{Style.RESET_ALL}")
     if creation_date_str:
          notes_content.append(f"{Fore.CYAN}📅 Il dominio è attivo da {TEXT_WHITE}{domain_age.split('(')[0].strip()}{Fore.CYAN}, indicando una presenza consolidata.{Style.RESET_ALL}")
     if "TXT" in dns_data:
@@ -853,6 +874,8 @@ def formal_html_report_domain(data, target_input, domain_analyzed, shodan_skippe
     a_records = dns.get("A", [])
     mx_records = dns.get("MX", [])
     domain = domain_analyzed
+    wayback_info = data.get("wayback_machine", {})
+
     html = f"""
     <!DOCTYPE html>
     <html lang='it'>
@@ -917,6 +940,22 @@ def formal_html_report_domain(data, target_input, domain_analyzed, shodan_skippe
                 <tr><th>Organizzazione</th><td>{shodan.get('org', 'N/A')}</td></tr>
                 <tr><th>ISP</th><td>{shodan.get('isp', 'N/A')}</td></tr>
                 <tr><th>Porte Aperte</th><td>{', '.join(str(p.get('port')) for p in shodan.get('ports_info', [])) if shodan.get('ports_info') else 'N/A'}</td></tr>
+            </table>
+        </div>
+        <div class='section'>
+            <h2>Wayback Machine</h2>
+            <table>
+                {''.join([
+                    f"<tr><th>Status</th><td>{wayback_info['error']}</td></tr>" if wayback_info.get("error") else "",
+                    f"<tr><th>Info</th><td>{wayback_info['info']}</td></tr>" if wayback_info.get("info") else "",
+                    (
+                        "<tr><th colspan='2'>Snapshots</th></tr>" +
+                        ''.join(
+                            f"<tr><td>{s.get('timestamp', 'N/A')}</td><td><a href='{s.get('url', '#')}'>{s.get('url', 'N/A')}</a></td></tr>"
+                            for s in wayback_info.get("snapshots", [])[:5]
+                        )
+                    ) if wayback_info.get("snapshots") else "<tr><td colspan='2'>Nessun snapshot trovato.</td></tr>"
+                ])}
             </table>
         </div>
         <div class='footer'>
@@ -1039,6 +1078,28 @@ def formal_pdf_report_domain(data, target_input, domain_analyzed, shodan_skipped
         story.append(Paragraph("Altri Record DNS", styleH2))
         story.append(clean_table(extra_dns))
         story.append(Spacer(1, 8))
+
+    # Wayback Machine (must be aviable in data )
+    story.append(Paragraph("Wayback Machine", styleH2))
+    wayback_info = data.get("wayback_machine", {}) # For domain report, data should contain wayback_machine info
+    wayback_data_rows = []
+
+    if wayback_info.get("error"):
+        wayback_data_rows.append([para("Status"), para(wayback_info['error'])])
+    elif wayback_info.get("info"):
+        wayback_data_rows.append([para("Info"), para(wayback_info['info'])])
+    elif snapshots := wayback_info.get("snapshots"):
+        wayback_data_rows.append([para(f"Ultimi {min(len(snapshots), 5)} Snapshot"), para("")])
+        for s in snapshots[:5]:
+            timestamp_wb = s.get('timestamp', 'N/A')
+            url_wb = s.get('url', 'N/A')
+            wayback_data_rows.append([para(f"  {timestamp_wb}"), para(url_wb)])
+    else:
+        wayback_data_rows.append([para("Nessun snapshot trovato."), para("")])
+
+    if wayback_data_rows:
+        story.append(Table(wayback_data_rows, hAlign='LEFT'))
+        story.append(Spacer(1, 12))
 
     story.append(Paragraph("Generato da Browsint OSINT Tool", styleN))
     doc = SimpleDocTemplate(output_path, pagesize=A4, rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40)

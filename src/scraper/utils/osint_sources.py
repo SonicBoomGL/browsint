@@ -15,7 +15,7 @@ from pathlib import Path
 from datetime import datetime
 
 # Importa le utility già esistenti per le chiamate API e l'estrazione/filtraggio
-from .clients import fetch_whois, fetch_dns_records, fetch_shodan, fetch_hunterio, check_email_breaches
+from .clients import fetch_whois, fetch_dns_records, fetch_shodan, fetch_hunterio, check_email_breaches, fetch_wayback_snapshots
 from .extractors import extract_emails, filter_emails, extract_phone_numbers, filter_phone_numbers
 
 logger = logging.getLogger("osint.sources")
@@ -120,6 +120,20 @@ def fetch_domain_osint(target: str, api_keys: Dict[str, str], logger) -> dict[st
         else:
             logger.info("Chiave API Shodan mancante. Skipping Shodan.")
 
+     # === Wayback Machine ===
+    if not is_ip:
+        wayback_data = fetch_wayback_snapshots(target)
+        if wayback_data and not wayback_data.get("error"):
+            result["wayback_machine"] = wayback_data
+            logger.debug("Wayback Machine completato con successo.")
+        else:
+            logger.warning(f"Wayback Machine lookup fallito per {target}: {wayback_data.get('error', 'Nessun dato trovato')}")
+            result["wayback_machine"] = {"error": "Nessun dato trovato o errore durante il fetch"}
+    else:
+        logger.info("Wayback Machine non applicabile per gli IP. Skipping Wayback Machine.")
+        result["wayback_machine"] = {"error": "Not applicable for IP addresses"}
+    
+        
     logger.debug(f"Raccolta OSINT per {target} completata. Risultati: {result}")
     return result
 
@@ -499,3 +513,5 @@ def fetch_website_contacts(domain: str, ) -> Dict[str, List[str]]:
     logger.info(f"Finished contact extraction for {domain}. Emails found (filtered): {len(filtered_emails_set)}, Phones found (filtered): {len(filtered_phones_set)}")
 
     return {"emails": list(filtered_emails_set), "phone_numbers": list(filtered_phones_set)}
+
+

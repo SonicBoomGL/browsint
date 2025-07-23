@@ -359,7 +359,7 @@ def export_osint_profile_cli(cli_instance: 'ScraperCLI', profile_data: dict = No
             domain_analyzed = profile_data.get('entity', {}).get('name', target_id) # Prendo il nome del dom analizzato
             target_input = profile_data.get('target_input', domain_analyzed) # Se non presente, uso in nome inserito in input
             shodan_skipped = 'shodan' not in data
-            html_report = formal_html_report_domain(data, target_input, domain_analyzed, shodan_skipped) # se shodan non presente, lo gestisco
+            html_report = formal_html_report_domain(data, target_input, domain_analyzed, shodan_skipped, ) # se shodan non presente, lo gestisco
             with open(html_path, 'w', encoding='utf-8') as f:
                 f.write(html_report) # scrivo report
             print(f"{Fore.YELLOW}✓ Profilo esportato in HTML: {html_path}{Style.RESET_ALL}")
