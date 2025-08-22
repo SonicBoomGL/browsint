@@ -1,60 +1,72 @@
-# Virtual Environment
-venv/
-.venv/
-env/
-ENV/
-
-# Python cache
+# === Python ===
 __pycache__/
 *.py[cod]
-*$py.class
-*.so
-
-# Logs and temp files
-*.log
-logs/
-tmp/
-*.tmp
-
-# Local configs
-.env
-.env.*
-*.ini
-
-# Package building
+*.pyo
+*.pyd
+*.pyc
+*.pdb
 *.egg-info/
-dist/
-build/
-eggs/
 *.egg
-
-# Database and data files
-data/
-backup/
-osint_exports/
-*.db
-*.sqlite
+*.env
+.env
+.venv/
+venv/
 *.sqlite3
-.html
-.json
+*.db
+*.log
 
-# IDE configs
-.idea/
+# === VSCode ===
 .vscode/
-*.sublime-*
-*.code-workspace
+.history/
+
+# === OS Files ===
+.DS_Store
+Thumbs.db
+
+# === Browsint Data/Cache ===
+/data/
+/.osint_cache/
+/logs/
+
+# === Node.js / Web Interface ===
+# Ignore node_modules and build output
+web_interface/node_modules/
+web_interface/dist/
+web_interface/.vite/
+web_interface/.next/
+web_interface/.cache/
+web_interface/.eslintcache
+
+# Ignore static assets that are built/generated
+web_interface/static/js/
+web_interface/static/css/
+web_interface/static/assets/
+web_interface/static/*.map
+
+# Ignore lock files (optional, if you want to keep them out)
+web_interface/package-lock.json
+web_interface/yarn.lock
+web_interface/pnpm-lock.yaml
+
+# Ignore test coverage and reports
+web_interface/coverage/
+web_interface/coverage-final.json
+
+# Ignore temporary files
+web_interface/*.tmp
+web_interface/*.swp
+
+# Ignore compiled TypeScript output (if any)
+web_interface/build/
+web_interface/out/
+
+# Ignore IDE files
+.idea/
 *.iml
 
-# Editor temp files
+# === Misc ===
+# Ignore any other temp or backup files
 *~
-*.swp
-*.swo
-
-# Cache files
-cache/
-.cache/
-.osint_cache/
-
-# pre-commit
-.mypy_cache/
-.pytest_cache/
+*.bak
+*.tmp
+*.orig

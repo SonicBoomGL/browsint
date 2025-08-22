@@ -23,11 +23,10 @@ from cli.scraper_cli import ScraperCLI
 from scraper.utils.validators import validate_domain
 from scraper.utils.formatters import format_domain_osint_report, format_page_analysis_report
 
-app = FastAPI(title="Browsint Web Interface", version="1.0.0")
+app = FastAPI(title="Browsint Web Interface", version="2.1.0")
 
 # Setup static files and templates
-app.mount("/static", StaticFiles(directory="web_interface/static"), name="static")
-templates = Jinja2Templates(directory="web_interface/templates")
+app.mount("/static", StaticFiles(directory="dist/assets"), name="static")
 
 # Global CLI instance
 cli_instance: Optional[ScraperCLI] = None
@@ -47,8 +46,22 @@ async def startup_event():
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-    """Home page"""
-    return templates.TemplateResponse("index.html", {"request": request})
+    """Serve React app"""
+    try:
+        with open("dist/index.html", "r", encoding="utf-8") as f:  # FIXED PATH
+            return HTMLResponse(content=f.read())
+    except FileNotFoundError:
+        # Fallback if React app not built
+        return HTMLResponse(content="""
+        <!DOCTYPE html>
+        <html>
+        <head><title>Browsint - Building...</title></head>
+        <body>
+            <h1>Browsint Web Interface</h1>
+            <p>React app is being built. Please run: npm run build</p>
+        </body>
+        </html>
+        """)
 
 @app.get("/api/status")
 async def get_status():
@@ -56,6 +69,7 @@ async def get_status():
     cli = get_cli_instance()
     return {
         "status": "running",
+        "version": "2.1.0",
         "api_keys_configured": list(cli.api_keys.keys()),
         "databases_initialized": True
     }
@@ -442,5 +456,16 @@ async def export_profile(profile_id: int, format: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# Catch-all route for React Router
+@app.get("/{full_path:path}")
+async def catch_all(request: Request, full_path: str):
+    """Serve React app for all other routes"""
+    try:
+        with open("dist/index.html", "r", encoding="utf-8") as f:  # FIXED PATH
+            return HTMLResponse(content=f.read())
+    except FileNotFoundError:
+        return HTMLResponse(content="<h1>Browsint - Please build the React app first</h1>")
+
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=8000, reload=True)
+    # Only use reload if running with uvicorn CLI, not directly
+    uvicorn.run(app, host="127.0.0.1", port=8000)
